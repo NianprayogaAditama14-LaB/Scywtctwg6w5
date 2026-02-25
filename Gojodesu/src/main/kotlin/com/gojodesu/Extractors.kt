@@ -9,7 +9,6 @@ import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.newExtractorLink
 
 open class EmturbovidExtractor : ExtractorApi() {
-
     override var name = "Gojodesu"
     override var mainUrl = "https://emturbovid.com"
     override val requiresReferer = true
@@ -129,7 +128,7 @@ open class EmturbovidExtractor : ExtractorApi() {
                 .sortedByDescending { it.second }
                 .map { (variantUrl, quality) ->
                     newExtractorLink(
-                        source = Gojodesu,
+                        source = name,
                         name = "$name ${quality}p",
                         url = variantUrl,
                         type = ExtractorLinkType.M3U8
