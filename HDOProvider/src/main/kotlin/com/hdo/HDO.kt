@@ -13,9 +13,9 @@ import kotlinx.coroutines.withContext
 
 
 class HDO : TmdbProvider() {
-    override var name = "HDO"
+    override var name = "HDO🎖"
     override val hasMainPage = true
-    override var lang = "ta"
+    override var lang = "id"
     override val instantLinkLoading = true
     override val useMetaLoadResponse = true
     override val hasQuickSearch = true

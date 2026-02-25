@@ -8,10 +8,10 @@ android {
 }
 
 cloudstream {
-    language = "ta"
+    language = "id"
     // All of these properties are optional, you can safely remove them
     description = "HDO provider"
-    authors = listOf("NivinCNC")
+    authors = listOf("NivinCNC, CodeSanz")
     /**
      * Status int as the following:
      * 0: Down
