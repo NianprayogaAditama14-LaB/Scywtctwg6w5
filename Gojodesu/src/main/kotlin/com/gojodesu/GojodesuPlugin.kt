@@ -10,8 +10,6 @@ class GojodesuPlugin : Plugin() {
     override fun load(context: Context) {
         Gojodesu.context = context
         registerMainAPI(Gojodesu())
-        registerExtractorAPI(Kotakajaib())
         registerExtractorAPI(EmturbovidExtractor())
-        registerExtractorAPI(Gdriveplayerto())
     }
 }
