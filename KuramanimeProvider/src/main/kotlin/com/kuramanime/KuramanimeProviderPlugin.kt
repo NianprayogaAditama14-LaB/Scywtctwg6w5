@@ -1,0 +1,20 @@
+
+package com.kuramanime
+
+import android.content.Context
+import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
+import com.lagradost.cloudstream3.plugins.Plugin
+
+@CloudstreamPlugin
+class KuramanimeProviderPlugin : Plugin() {
+
+    override fun load(context: Context) {
+        registerMainAPI(KuramanimeProvider())
+
+        registerExtractorAPI(Nyomo())
+        registerExtractorAPI(Streamhide())
+        registerExtractorAPI(Kuramadrive())
+        registerExtractorAPI(Lbx())
+        registerExtractorAPI(Sunrong())
+    }
+}
