@@ -30,10 +30,17 @@ class BstationProvider : MainAPI() {
     )
 
     override val mainPage = mainPageOf(
-        "timeline" to "Jadwal Rilis",
-        "trending" to "Sedang Tren",
-        "popular" to "Anime Populer",
-        "recommend" to "Rekomendasi"
+        "timeline" to "Latest Updates",
+        "search:movie" to "Movies",
+        "search:anime" to "Anime",
+        "search:drama" to "Drama",
+        "search:action" to "Action",
+        "search:thriller" to "Thriller",
+        "search:horror" to "Horror",
+        "search:fantasy" to "Fantasy",
+        "search:adventure" to "Adventure",
+        "search:isekai" to "Isekai",
+        "search:hindi" to "Dubbed",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {

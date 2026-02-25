@@ -1,5 +1,6 @@
 import com.android.build.gradle.BaseExtension
 import com.lagradost.cloudstream3.gradle.CloudstreamExtension
+import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
@@ -11,9 +12,9 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.7.3") // Jangan diganti ke versi terbaru, karena ada masalah dengan versi terbaru
-        classpath("com.github.recloudstream:gradle:-SNAPSHOT")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0")
+        classpath("com.android.tools.build:gradle:8.13.2") // Versi AGP terbaru
+        classpath("com.github.recloudstream:gradle:cce1b8d84d") // SHA commit stabil
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0") // Cocok Cloudstream pre-release
     }
 }
 
@@ -25,9 +26,11 @@ allprojects {
     }
 }
 
-fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) = extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
+fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
+    extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
 
-fun Project.android(configuration: BaseExtension.() -> Unit) = extensions.getByName<BaseExtension>("android").configuration()
+fun Project.android(configuration: BaseExtension.() -> Unit) =
+    extensions.getByName<BaseExtension>("android").configuration()
 
 subprojects {
     apply(plugin = "com.android.library")
@@ -35,18 +38,18 @@ subprojects {
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        setRepo(System.getenv("GITHUB_REPOSITORY") ?: "https://github.com/Asm0d3usX/CloudX")
-        authors = listOf("Asm0d3usX")
+        setRepo(System.getenv("GITHUB_REPOSITORY") ?: 
+            "https://github.com/phisher98/cloudstream-extensions-phisher")
+        authors = listOf("Phisher98")
     }
 
     android {
-        namespace = "com.asm0d3usx"
+        namespace = "com.phisher98"
 
         defaultConfig {
-            minSdk = 26
-            compileSdkVersion(35)
+            minSdk = 21
             targetSdk = 35
-
+            compileSdkVersion(35)
         }
 
         compileOptions {
@@ -54,46 +57,41 @@ subprojects {
             targetCompatibility = JavaVersion.VERSION_1_8
         }
 
-
         tasks.withType<KotlinJvmCompile> {
             compilerOptions {
                 jvmTarget.set(JvmTarget.JVM_1_8)
                 freeCompilerArgs.addAll(
                     "-Xno-call-assertions",
                     "-Xno-param-assertions",
-                    "-Xno-receiver-assertions"
+                    "-Xno-receiver-assertions",
+                    "-Xskip-metadata-version-check" // Supaya R8 gak error metadata
                 )
-                allWarningsAsErrors.set(false)
             }
         }
     }
 
     dependencies {
-        val cloudstream by configurations
         val implementation by configurations
-        
-        // Cloudstream dependencies
+        val cloudstream by configurations
+
         cloudstream("com.lagradost:cloudstream3:pre-release")
 
-        // Other dependencies
-        implementation(kotlin("stdlib")) // Untuk Kotlin Standard Library
-        implementation("com.github.Blatzar:NiceHttp:0.4.13") // Untuk HTTP requests
-        implementation("org.jsoup:jsoup:1.19.1") // Untuk parsing HTML
-        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.16.0") // JANGAN DIGANTI ke versi terbaru, karena ada masalah dengan versi terbaru
-        implementation("com.fasterxml.jackson.core:jackson-databind:2.16.0") // Untuk serialisasi/deserialisasi JSON
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1") // Untuk coroutines di Android
-        implementation("org.mozilla:rhino:1.8.0") // Untuk JavaScript engine
-        implementation("me.xdrop:fuzzywuzzy:1.4.0") // Untuk fuzzy matching
-        implementation("com.google.code.gson:gson:2.11.0") // Untuk serialisasi/deserialisasi JSON
-        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0") // Untuk serialisasi/deserialisasi JSON
-        implementation("app.cash.quickjs:quickjs-android:0.9.2") // Untuk JavaScript engine
-        implementation("com.squareup.okhttp3:okhttp:4.12.0") // Untuk HTTP requests
-        implementation("androidx.core:core-ktx:1.16.0") // Untuk Log dan utilitas Android
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1") // Untuk coroutines
-
+        implementation(kotlin("stdlib", "2.3.0"))
+        implementation("com.github.Blatzar:NiceHttp:0.4.16")
+        implementation("org.jsoup:jsoup:1.22.1")
+        implementation("androidx.annotation:annotation:1.9.1")
+        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.1")
+        implementation("com.fasterxml.jackson.core:jackson-databind:2.20.1")
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+        implementation("org.mozilla:rhino:1.9.0")
+        implementation("me.xdrop:fuzzywuzzy:1.4.0")
+        implementation("com.google.code.gson:gson:2.13.2")
+        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+        implementation("com.github.vidstige:jadb:v1.2.1")
+        implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
     }
 }
 
-task<Delete>("clean") {
+tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
