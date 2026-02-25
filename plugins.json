@@ -1,0 +1,115 @@
+[
+    {
+        "iconUrl": "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://justilien.com&size=%size%",
+        "fileHash": "sha256-05826a470ea3727752064305ee81d364603a3c3ec70d59fbad7579de68eedfca",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 22478,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "CodeSanz"
+        ],
+        "tvTypes": [
+            "AsianDrama",
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "FilmKita",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/FilmKita.cs3",
+        "name": "FilmKita"
+    },
+    {
+        "iconUrl": "https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://v17.kuramanime.ink&size=%size%",
+        "fileHash": "sha256-8dadef7447c51aef4911a0b8b5bc81a8ec2264dfc49f83cda6720f26b2401532",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 48869,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Sanzz"
+        ],
+        "tvTypes": [
+            "Anime",
+            "AnimeMovie",
+            "OVA"
+        ],
+        "version": 1,
+        "internalName": "Kuramanime",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/Kuramanime.cs3",
+        "name": "Kuramanime"
+    },
+    {
+        "jarFileSize": 47215,
+        "fileHash": "sha256-ccea470a866d689694b693d66d7624f0d613180b685dc9bd3a2731874583b093",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 15807,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Sanzz"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "AsianDrama"
+        ],
+        "version": 1,
+        "internalName": "LayarWarna",
+        "jarUrl": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/LayarWarna.jar",
+        "description": "LayarWarna - Streaming Movie Sub Indo",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/LayarWarna.cs3",
+        "name": "LayarWarna",
+        "jarHash": "sha256-539debfd14425cf78aeda442388f57892d5dbf550a7eb0adc11d7f21540b5e21"
+    },
+    {
+        "iconUrl": "https://wiapr.com/favicon.ico",
+        "fileHash": "sha256-f2c1dd8aa6777841a51b536440fb0d37fb214536606ee61f2f8f793fcac5323a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 28154,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Sanzz"
+        ],
+        "tvTypes": [
+            "AsianDrama",
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 2,
+        "internalName": "Rebahin",
+        "description": "Rebahin",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/Rebahin.cs3",
+        "name": "Rebahin"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=animexin.dev&sz=%size%",
+        "jarFileSize": 54198,
+        "fileHash": "sha256-446c898a100f68953614a481991a9069020e6a96249ead9ff445dac31f20f78e",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 14986,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Sanzz"
+        ],
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "Cartoon"
+        ],
+        "version": 1,
+        "internalName": "TenseiID",
+        "jarUrl": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/TenseiID.jar",
+        "description": "Anime and Movies",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/TenseiID.cs3",
+        "name": "TenseiID",
+        "jarHash": "sha256-695a02f599b390601d90ea431ea7f018b801c085ce748f6740ad73633b608936"
+    }
+]
