@@ -210,7 +210,7 @@ class BstationProvider : MainAPI() {
                         newExtractorLink(this.name, "$name Direct", videoUrl, INFER_TYPE) {
                             this.referer = "https://www.bilibili.tv/"
                             this.quality = Qualities.Unknown.value
-                            this.headers = this@Bstation.headers
+                            this.headers = this@BstationProvider.headers
                         }
                     )
                     foundLinks = true
@@ -233,7 +233,7 @@ class BstationProvider : MainAPI() {
                                 newExtractorLink(this.name, "$name $quality", videoUrl, INFER_TYPE) {
                                     this.referer = "https://www.bilibili.tv/"
                                     this.quality = getQualityFromName(quality)
-                                    this.headers = this@Bstation.headers
+                                    this.headers = this@BstationProvider.headers
                                     this.audioTracks = audioFiles
                                 }
                             )
@@ -249,7 +249,7 @@ class BstationProvider : MainAPI() {
                         newExtractorLink(this.name, "$name $quality", videoUrl, INFER_TYPE) {
                             this.referer = "https://www.bilibili.tv/"
                             this.quality = getQualityFromName(quality)
-                            this.headers = this@Bstation.headers
+                            this.headers = this@BstationProvider.headers
                         }
                     )
                     foundLinks = true
@@ -280,7 +280,7 @@ class BstationProvider : MainAPI() {
                             newExtractorLink(this.name, "$name $quality", videoUrl, INFER_TYPE) {
                                 this.referer = "https://www.bilibili.tv/"
                                 this.quality = getQualityFromName(quality)
-                                this.headers = this@Bstation.headers
+                                this.headers = this@BstationProvider.headers
                             }
                         )
                         foundLinks = true
@@ -493,4 +493,3 @@ class BstationProvider : MainAPI() {
         @JsonProperty("quality") val quality: Int?
     )
 }
-
