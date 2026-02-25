@@ -1,0 +1,43 @@
+[
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=nimegami.id&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 25417,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Hexated"
+        ],
+        "tvTypes": [
+            "AnimeMovie",
+            "Anime",
+            "OVA"
+        ],
+        "version": 13,
+        "internalName": "Nimegami",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/Nimegami.cs3",
+        "name": "Nimegami"
+    },
+    {
+        "iconUrl": "https://wiapr.com/favicon.ico",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/NianprayogaAditama14-LaB/Scywtctwg6w5",
+        "fileSize": 29078,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "Sanzz"
+        ],
+        "tvTypes": [
+            "AsianDrama",
+            "TvSeries",
+            "Movie"
+        ],
+        "version": 2,
+        "internalName": "Rebahin",
+        "description": "Rebahin",
+        "url": "https://raw.githubusercontent.com/NianprayogaAditama14-LaB/Scywtctwg6w5/builds/Rebahin.cs3",
+        "name": "Rebahin"
+    }
+]
