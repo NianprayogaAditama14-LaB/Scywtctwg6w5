@@ -1,11 +1,11 @@
-package com.dutamovie
+package com.filmkita
 
 import android.content.Context
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class DutaMoviePlugin : Plugin() {
+class FilmKitaPlugin : Plugin() {
     override fun load(context: Context) {
         DutaMovie.context = context
         registerMainAPI(FilmKita())
