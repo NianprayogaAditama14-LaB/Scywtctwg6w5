@@ -23,11 +23,22 @@ class FilmKita : MainAPI() {
         setOf(TvType.Movie, TvType.TvSeries, TvType.Anime, TvType.AsianDrama)
 
     override val mainPage = mainPageOf(
-        "category/box-office/page/%d/" to "Box Office",
-        "category/serial-tv/page/%d/" to "Serial TV",
-        "category/animation/page/%d/" to "Animasi",
-        "country/korea/page/%d/" to "Serial TV Korea",
-        "country/indonesia/page/%d/" to "Serial TV Indonesia",
+        "year/2025/page/%d/" to "Terbaru",
+        "category/tv-series/page/%d/" to "TV Series",
+        "category/action/page/%d/" to "Action",
+        "category/adventure/page/%d/" to "Adventure",
+        "category/comedy/page/%d/" to "Comedy",
+        "category/crime/page/%d/" to "Crime",
+        "category/drama/page/%d/" to "Drama",
+        "category/fantasy/page/%d/" to "Fantasy",
+        "category/horror/page/%d/" to "Horror",
+        "category/mystery/page/%d/" to "Mystery",
+        "category/romance/page/%d/" to "Romance",
+        "country/china/page/%d/" to "China",
+        "country/indonesia/page/%d/" to "Indonesia",
+        "country/korea/page/%d/" to "Korea",
+        "country/philippines/page/%d/" to "Philippines",
+        "country/thailand/page/%d/" to "Thailand"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
