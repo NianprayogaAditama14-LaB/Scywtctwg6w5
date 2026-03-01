@@ -4,7 +4,7 @@ import android.util.Base64
 import com.lagradost.cloudstream3.utils.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
-import com.lagradost.cloudstream3.utils.SubtitleFile
+import com.lagradost.cloudstream3.utils.newExtractorLink
 
 class LayarWibuExtractor : ExtractorApi() {
 
@@ -14,21 +14,20 @@ class LayarWibuExtractor : ExtractorApi() {
 
     override suspend fun getUrl(
         url: String,
-        referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ) {
+        referer: String?
+    ): List<ExtractorLink>? {
+
         val encoded = url.substringAfterLast("/")
         val decoded = String(Base64.decode(encoded, Base64.DEFAULT))
 
-        callback.invoke(
-            ExtractorLink(
-                name,
-                name,
-                decoded,
-                "",
-                Qualities.P1080.value,
-                true
+        return listOf(
+            newExtractorLink(
+                source = name,
+                name = name,
+                url = decoded,
+                referer = "",
+                quality = Qualities.P1080.value,
+                isM3u8 = true
             )
         )
     }
