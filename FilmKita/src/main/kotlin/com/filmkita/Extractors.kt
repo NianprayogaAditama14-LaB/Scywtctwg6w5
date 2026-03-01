@@ -22,12 +22,12 @@ class LayarWibuExtractor : ExtractorApi() {
 
         return listOf(
             newExtractorLink(
-                source = name,
-                name = name,
-                url = decoded,
-                referer = "",
-                quality = Qualities.P1080.value,
-                isM3u8 = true
+                name,
+                name,
+                decoded,
+                "",
+                Qualities.P1080.value,
+                true
             )
         )
     }
