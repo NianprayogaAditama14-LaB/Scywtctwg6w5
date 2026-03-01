@@ -1,9 +1,7 @@
 package com.filmkita
 
 import android.util.Base64
-import com.lagradost.cloudstream3.utils.ExtractorApi
-import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.*
 
 class LayarWibuExtractor : ExtractorApi() {
 
@@ -20,7 +18,7 @@ class LayarWibuExtractor : ExtractorApi() {
         val decoded = String(Base64.decode(encoded, Base64.DEFAULT))
 
         return listOf(
-            ExtractorLink(
+            newExtractorLink(
                 source = name,
                 name = name,
                 url = decoded,
