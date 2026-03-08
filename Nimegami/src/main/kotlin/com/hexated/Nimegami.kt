@@ -16,6 +16,7 @@ class Nimegami : MainAPI() {
     override var name = "Nimegami"
     override val hasMainPage = true
     override var lang = "id"
+
     override val supportedTypes = setOf(
         TvType.Anime,
         TvType.AnimeMovie,
@@ -23,6 +24,7 @@ class Nimegami : MainAPI() {
     )
 
     companion object {
+
         fun getType(t: String): TvType {
             return when {
                 t.contains("Tv", true) -> TvType.Anime
@@ -48,14 +50,16 @@ class Nimegami : MainAPI() {
         "/type/live-action" to "Live Action",
     )
 
-    override suspend fun getMainPage(
-        page: Int,
-        request: MainPageRequest
-    ): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+
         val document = app.get("$mainUrl${request.data}/page/$page").document
-        val home = document.select("div.post-article article, div.archive article").mapNotNull {
+
+        val home = document.select(
+            "div.post-article article, div.archive article"
+        ).mapNotNull {
             it.toSearchResult()
         }
+
         return newHomePageResponse(
             list = HomePageList(
                 name = request.name,
@@ -67,11 +71,18 @@ class Nimegami : MainAPI() {
     }
 
     private fun Element.toSearchResult(): AnimeSearchResponse? {
+
         val href = fixUrl(this.selectFirst("a")!!.attr("href"))
         val title = this.selectFirst("h2 a")?.text() ?: return null
-        val posterUrl = (this.selectFirst("noscript img") ?: this.selectFirst("img"))?.attr("src")
-        val episode = this.selectFirst("ul li:contains(Episode), div.eps-archive")?.ownText()
-            ?.filter { it.isDigit() }?.toIntOrNull()
+
+        val posterUrl = (
+            this.selectFirst("noscript img")
+                ?: this.selectFirst("img")
+        )?.attr("src")
+
+        val episode = this.selectFirst(
+            "ul li:contains(Episode), div.eps-archive"
+        )?.ownText()?.filter { it.isDigit() }?.toIntOrNull()
 
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
@@ -80,69 +91,145 @@ class Nimegami : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
+
         val searchResponse = mutableListOf<SearchResponse>()
+
         for (i in 1..2) {
-            val res =
-                app.get("$mainUrl/page/$i/?s=$query&post_type=post").document.select("div.archive article")
-                    .mapNotNull {
-                        it.toSearchResult()
-                    }
+
+            val res = app.get(
+                "$mainUrl/page/$i/?s=$query&post_type=post"
+            ).document.select(
+                "div.archive article"
+            ).mapNotNull {
+                it.toSearchResult()
+            }
+
             searchResponse.addAll(res)
         }
+
         return searchResponse
     }
 
     override suspend fun load(url: String): LoadResponse {
+
         val document = app.get(url).document
 
         val table = document.select("div#Info table tbody")
+
         val title = table.getContent("Judul :").text()
-        val poster = document.selectFirst("div.coverthumbnail img")?.attr("src")
-        val bgPoster = document.selectFirst("div.thumbnail-a img")?.attr("src")
-        val tags = table.getContent("Kategori").select("a").map { it.text() }
 
-        val year = table.getContent("Musim / Rilis").text().filter { it.isDigit() }.toIntOrNull()
-        val status = getStatus(document.selectFirst("h1[itemprop=headline]")?.text())
-        val type = getType(table.getContent("Type").text())
-        val description = document.select("div#Sinopsis p").text().trim()
-        val trailer = document.selectFirst("div#Trailer iframe")?.attr("src")
+        val poster = document.selectFirst(
+            "div.coverthumbnail img"
+        )?.attr("src")
 
-        val episodes = document.select("div.list_eps_stream li")
-            .mapNotNull {
-                val episode = Regex("Episode\\s?(\\d+)").find(it.text())?.groupValues?.getOrNull(0)
-                    ?.toIntOrNull()
-                val link = it.attr("data")
-                newEpisode(url = link, initializer = { this.episode = episode }, fix = false)
-            }
+        val bgPoster = document.selectFirst(
+            "div.thumbnail-a img"
+        )?.attr("src")
 
-        val recommendations = document.select("div#randomList > a").mapNotNull {
+        val tags = table.getContent("Kategori")
+            .select("a")
+            .map { it.text() }
+
+        val year = table.getContent(
+            "Musim / Rilis"
+        ).text().filter { it.isDigit() }.toIntOrNull()
+
+        val status = getStatus(
+            document.selectFirst(
+                "h1[itemprop=headline]"
+            )?.text()
+        )
+
+        val type = getType(
+            table.getContent("Type").text()
+        )
+
+        val description = document.select(
+            "div#Sinopsis p"
+        ).text().trim()
+
+        val trailer = document.selectFirst(
+            "div#Trailer iframe"
+        )?.attr("src")
+
+        val episodes = document.select(
+            "div.list_eps_stream li"
+        ).mapNotNull {
+
+            val episode = Regex(
+                "Episode\\s?(\\d+)"
+            ).find(it.text())
+                ?.groupValues
+                ?.getOrNull(1)   // FIXED
+                ?.toIntOrNull()
+
+            val link = it.attr("data")
+
+            newEpisode(
+                url = link,
+                initializer = {
+                    this.episode = episode
+                },
+                fix = false
+            )
+        }
+
+        val recommendations = document.select(
+            "div#randomList > a"
+        ).mapNotNull {
+
             val epHref = it.attr("href")
-            val epTitle = it.select("h5.sidebar-title-h5.px-2.py-2").text()
-            val epPoster = it.select(".product__sidebar__view__item.set-bg").attr("data-setbg")
 
-            newAnimeSearchResponse(epTitle, epHref, TvType.Anime) {
+            val epTitle = it.select(
+                "h5.sidebar-title-h5.px-2.py-2"
+            ).text()
+
+            val epPoster = it.select(
+                ".product__sidebar__view__item.set-bg"
+            ).attr("data-setbg")
+
+            newAnimeSearchResponse(
+                epTitle,
+                epHref,
+                TvType.Anime
+            ) {
                 this.posterUrl = epPoster
-                addDubStatus(dubExist = false, subExist = true)
+                addDubStatus(
+                    dubExist = false,
+                    subExist = true
+                )
             }
         }
 
-        val tracker = APIHolder.getTracker(listOf(title), TrackerType.getTypes(type), year, true)
+        val tracker = APIHolder.getTracker(
+            listOf(title),
+            TrackerType.getTypes(type),
+            year,
+            true
+        )
 
         return newAnimeLoadResponse(title, url, type) {
+
             engName = title
             posterUrl = tracker?.image ?: poster
             backgroundPosterUrl = tracker?.cover ?: bgPoster
+
             this.year = year
-            addEpisodes(DubStatus.Subbed, episodes)
+
+            addEpisodes(
+                DubStatus.Subbed,
+                episodes
+            )
+
             showStatus = status
             plot = description
             this.tags = tags
             this.recommendations = recommendations
+
             addTrailer(trailer)
             addMalId(tracker?.malId)
             addAniListId(tracker?.aniId?.toIntOrNull())
         }
-
     }
 
     override suspend fun loadLinks(
@@ -152,8 +239,12 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        tryParseJson<ArrayList<Sources>>(base64Decode(data))?.map { sources ->
-            sources.url?.amap { url ->
+        tryParseJson<ArrayList<Sources>>(
+            base64Decode(data)
+        )?.forEach { sources ->
+
+            sources.url?.forEach { url ->
+
                 loadFixedExtractor(
                     url,
                     sources.format,
@@ -174,8 +265,44 @@ class Nimegami : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        loadExtractor(url, referer, subtitleCallback) { link ->
+
+        if (url.contains("dlgan.space")) {
+
+            val res = app.get(url, referer = referer).text
+
+            val stream = Regex(
+                """stream_url":"(.*?)""""
+            ).find(res)
+                ?.groupValues
+                ?.get(1)
+                ?.replace("\\/", "/")
+
+            if (stream != null) {
+
+                callback.invoke(
+                    newExtractorLink(
+                        "Nimegami",
+                        "Nimegami $quality",
+                        stream,
+                        ExtractorLinkType.VIDEO
+                    ) {
+                        this.referer = "https://dlgan.space/"
+                        this.quality = getQualityFromName(quality)
+                    }
+                )
+            }
+
+            return
+        }
+
+        loadExtractor(
+            url,
+            referer,
+            subtitleCallback
+        ) { link ->
+
             runBlocking {
+
                 callback.invoke(
                     newExtractorLink(
                         link.name,
@@ -183,6 +310,7 @@ class Nimegami : MainAPI() {
                         link.url,
                         link.type
                     ) {
+
                         this.referer = link.referer
                         this.quality = getQualityFromName(quality)
                         this.headers = link.headers
@@ -194,12 +322,17 @@ class Nimegami : MainAPI() {
     }
 
     private fun Elements.getContent(css: String): Elements {
-        return this.select("tr:contains($css) td:last-child")
+        return this.select(
+            "tr:contains($css) td:last-child"
+        )
     }
 
     data class Sources(
-        @JsonProperty("format") val format: String? = null,
-        @JsonProperty("url") val url: ArrayList<String>? = arrayListOf(),
-    )
 
+        @JsonProperty("format")
+        val format: String? = null,
+
+        @JsonProperty("url")
+        val url: ArrayList<String>? = arrayListOf(),
+    )
 }
