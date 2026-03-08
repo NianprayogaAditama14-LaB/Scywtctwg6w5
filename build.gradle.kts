@@ -13,7 +13,7 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:8.3.2")
-        classpath("com.github.recloudstream:gradle:master-SNAPSHOT")
+        classpath("com.github.LagradOst:CloudstreamPlugins:master-SNAPSHOT")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
     }
 }
@@ -50,7 +50,7 @@ subprojects {
 
         namespace = "com.yourname"
 
-        compileSdkVersion(34)
+        compileSdk = 34
 
         defaultConfig {
             minSdk = 21
@@ -62,7 +62,7 @@ subprojects {
             targetCompatibility = JavaVersion.VERSION_1_8
         }
 
-        tasks.withType<KotlinJvmCompile> {
+        tasks.withType<KotlinJvmCompile>().configureEach {
             compilerOptions {
                 jvmTarget.set(JvmTarget.JVM_1_8)
                 freeCompilerArgs.addAll(
