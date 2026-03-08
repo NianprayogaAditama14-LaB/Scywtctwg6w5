@@ -7,11 +7,11 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
-import kotlinx.coroutines.runBlocking
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 
 class Nimegami : MainAPI() {
+
     override var mainUrl = "https://nimegami.id"
     override var name = "Nimegami"
     override val hasMainPage = true
@@ -56,9 +56,7 @@ class Nimegami : MainAPI() {
 
         val home = document.select(
             "div.post-article article, div.archive article"
-        ).mapNotNull {
-            it.toSearchResult()
-        }
+        ).mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
             list = HomePageList(
@@ -113,7 +111,6 @@ class Nimegami : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
 
         val document = app.get(url).document
-
         val table = document.select("div#Info table tbody")
 
         val title = table.getContent("Judul :").text()
@@ -159,45 +156,13 @@ class Nimegami : MainAPI() {
             val episode = Regex(
                 "Episode\\s?(\\d+)"
             ).find(it.text())
-                ?.groupValues
-                ?.getOrNull(1)   // FIXED
+                ?.groupValues?.getOrNull(1)
                 ?.toIntOrNull()
 
             val link = it.attr("data")
 
-            newEpisode(
-                url = link,
-                initializer = {
-                    this.episode = episode
-                },
-                fix = false
-            )
-        }
-
-        val recommendations = document.select(
-            "div#randomList > a"
-        ).mapNotNull {
-
-            val epHref = it.attr("href")
-
-            val epTitle = it.select(
-                "h5.sidebar-title-h5.px-2.py-2"
-            ).text()
-
-            val epPoster = it.select(
-                ".product__sidebar__view__item.set-bg"
-            ).attr("data-setbg")
-
-            newAnimeSearchResponse(
-                epTitle,
-                epHref,
-                TvType.Anime
-            ) {
-                this.posterUrl = epPoster
-                addDubStatus(
-                    dubExist = false,
-                    subExist = true
-                )
+            newEpisode(link) {
+                this.episode = episode
             }
         }
 
@@ -215,16 +180,11 @@ class Nimegami : MainAPI() {
             backgroundPosterUrl = tracker?.cover ?: bgPoster
 
             this.year = year
-
-            addEpisodes(
-                DubStatus.Subbed,
-                episodes
-            )
+            addEpisodes(DubStatus.Subbed, episodes)
 
             showStatus = status
             plot = description
             this.tags = tags
-            this.recommendations = recommendations
 
             addTrailer(trailer)
             addMalId(tracker?.malId)
@@ -261,20 +221,31 @@ class Nimegami : MainAPI() {
     private suspend fun loadFixedExtractor(
         url: String,
         quality: String?,
-        referer: String? = null,
+        referer: String?,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
 
         if (url.contains("dlgan.space")) {
 
-            val res = app.get(url, referer = referer).text
+            val html = app.get(
+                url,
+                headers = mapOf(
+                    "referer" to "https://dlgan.space/",
+                    "origin" to "https://dlgan.space",
+                    "user-agent" to USER_AGENT
+                )
+            ).text
+
+            val json = Regex(
+                """__STREAMING_PRELOAD__\s*=\s*(\{.*?\});"""
+            ).find(html)?.groupValues?.get(1)
 
             val stream = Regex(
                 """stream_url":"(.*?)""""
-            ).find(res)
-                ?.groupValues
-                ?.get(1)
+            ).find(json ?: "")
+                ?.groupValues?.get(1)
+                ?.replace("\\u0026", "&")
                 ?.replace("\\/", "/")
 
             if (stream != null) {
@@ -301,23 +272,20 @@ class Nimegami : MainAPI() {
             subtitleCallback
         ) { link ->
 
-            runBlocking {
+            callback.invoke(
+                newExtractorLink(
+                    link.name,
+                    link.name,
+                    link.url,
+                    link.type
+                ) {
 
-                callback.invoke(
-                    newExtractorLink(
-                        link.name,
-                        link.name,
-                        link.url,
-                        link.type
-                    ) {
-
-                        this.referer = link.referer
-                        this.quality = getQualityFromName(quality)
-                        this.headers = link.headers
-                        this.extractorData = link.extractorData
-                    }
-                )
-            }
+                    this.referer = link.referer
+                    this.quality = getQualityFromName(quality)
+                    this.headers = link.headers
+                    this.extractorData = link.extractorData
+                }
+            )
         }
     }
 
