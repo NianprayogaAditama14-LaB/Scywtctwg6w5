@@ -12,8 +12,13 @@ buildscript {
     }
 
     dependencies {
+        // Android Gradle
         classpath("com.android.tools.build:gradle:8.3.2")
-        classpath("com.github.LagradOst:CloudstreamPlugins:master-SNAPSHOT")
+
+        // Cloudstream Gradle Plugin (stable commit)
+        classpath("com.github.LagradOst:CloudstreamPlugins:4c0c8b3")
+
+        // Kotlin
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
     }
 }
