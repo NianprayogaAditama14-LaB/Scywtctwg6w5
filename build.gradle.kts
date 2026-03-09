@@ -12,13 +12,8 @@ buildscript {
     }
 
     dependencies {
-        // Android Gradle
         classpath("com.android.tools.build:gradle:8.3.2")
-
-        // Cloudstream Gradle Plugin (stable commit)
-        classpath("com.github.LagradOst:CloudstreamPlugins:4c0c8b3")
-
-        // Kotlin
+        classpath("com.github.recloudstream:gradle:master-SNAPSHOT")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
     }
 }
@@ -46,7 +41,7 @@ subprojects {
     cloudstream {
         setRepo(
             System.getenv("GITHUB_REPOSITORY")
-                ?: "https://github.com/yourname/cloudstream-plugins"
+                ?: "https://github.com/yourusername/CloudstreamPlugins"
         )
         authors = listOf("YourName")
     }
