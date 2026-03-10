@@ -9,6 +9,7 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
+import android.util.Base64
 
 class Nimegami : MainAPI() {
 
@@ -199,7 +200,7 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        val decoded = base64Decode(data)
+        val decoded = String(Base64.decode(data, Base64.DEFAULT))
 
         tryParseJson<ArrayList<Sources>>(decoded)?.forEach { sources ->
 
@@ -225,46 +226,6 @@ class Nimegami : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
-        if (url.contains("dlgan.space")) {
-
-            val html = app.get(
-                url,
-                headers = mapOf(
-                    "referer" to "https://dlgan.space/",
-                    "origin" to "https://dlgan.space",
-                    "user-agent" to USER_AGENT
-                )
-            ).text
-
-            val json = Regex(
-                """__STREAMING_PRELOAD__\s*=\s*(\{.*?\});"""
-            ).find(html)?.groupValues?.get(1)
-
-            val stream = Regex(
-                """stream_url":"(.*?)""""
-            ).find(json ?: "")
-                ?.groupValues?.get(1)
-                ?.replace("\\u0026", "&")
-                ?.replace("\\/", "/")
-
-            if (stream != null) {
-
-                callback.invoke(
-                    newExtractorLink(
-                        "Nimegami",
-                        "Nimegami $quality",
-                        stream,
-                        ExtractorLinkType.VIDEO
-                    ) {
-                        this.referer = "https://dlgan.space/"
-                        this.quality = getQualityFromName(quality)
-                    }
-                )
-            }
-
-            return
-        }
 
         loadExtractor(
             url,
