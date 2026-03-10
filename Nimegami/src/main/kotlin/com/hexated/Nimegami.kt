@@ -199,9 +199,9 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        tryParseJson<ArrayList<Sources>>(
-            base64Decode(data)
-        )?.forEach { sources ->
+        val decoded = base64Decode(data)
+
+        tryParseJson<ArrayList<Sources>>(decoded)?.forEach { sources ->
 
             sources.url?.forEach { url ->
 
