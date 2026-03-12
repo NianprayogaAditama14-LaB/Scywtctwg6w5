@@ -38,12 +38,15 @@ class EmbedPyroxExtractor : ExtractorApi() {
 
         if (stream.isEmpty()) return
 
-        M3u8Helper.generateM3u8(
-            name,
-            stream,
-            referer ?: mainUrl,
-            null,
-            callback
+        callback.invoke(
+            ExtractorLink(
+                source = name,
+                name = name,
+                url = stream,
+                referer = mainUrl,
+                quality = Qualities.P1080.value,
+                isM3u8 = true
+            )
         )
     }
 }
