@@ -13,7 +13,7 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:8.3.2")
-        classpath("com.github.recloudstream:gradle:master-SNAPSHOT")
+        classpath("com.github.recloudstream:gradle:1.8.8") // versi stabil
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
     }
 }
@@ -47,7 +47,6 @@ subprojects {
     }
 
     android {
-
         namespace = "com.yourname"
 
         compileSdk = 34
@@ -76,11 +75,10 @@ subprojects {
     }
 
     dependencies {
-
         val implementation by configurations
         val cloudstream by configurations
 
-        cloudstream("com.lagradost:cloudstream3:pre-release")
+        cloudstream("com.lagradost:cloudstream3:pre-release") // Cloudstream 3 stable
 
         implementation(kotlin("stdlib"))
 
