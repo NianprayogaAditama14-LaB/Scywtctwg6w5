@@ -13,7 +13,6 @@ buildscript {
 
     dependencies {
         classpath("com.android.tools.build:gradle:8.3.2")
-        classpath("com.github.recloudstream:gradle:1.8.8") // versi stabil
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24")
     }
 }
@@ -26,6 +25,7 @@ allprojects {
     }
 }
 
+// Extension helpers
 fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
     extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
 
@@ -48,7 +48,6 @@ subprojects {
 
     android {
         namespace = "com.yourname"
-
         compileSdk = 34
 
         defaultConfig {
@@ -78,30 +77,35 @@ subprojects {
         val implementation by configurations
         val cloudstream by configurations
 
-        cloudstream("com.lagradost:cloudstream3:pre-release") // Cloudstream 3 stable
+        // Cloudstream3 SDK
+        cloudstream("com.lagradost:cloudstream3:pre-release")
 
+        // Kotlin standard library
         implementation(kotlin("stdlib"))
 
+        // HTTP, JSON, parsing
         implementation("com.github.Blatzar:NiceHttp:0.4.16")
         implementation("org.jsoup:jsoup:1.17.2")
         implementation("androidx.annotation:annotation:1.7.1")
-
+        implementation("com.google.code.gson:gson:2.10.1")
         implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
         implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
 
+        // Coroutines & serialization
         implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
         implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+        // Scripting & utils
         implementation("org.mozilla:rhino:1.7.15")
         implementation("me.xdrop:fuzzywuzzy:1.4.0")
 
-        implementation("com.google.code.gson:gson:2.10.1")
-
+        // ADB & security
         implementation("com.github.vidstige:jadb:v1.2.1")
         implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
     }
 }
 
+// Clean task
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
