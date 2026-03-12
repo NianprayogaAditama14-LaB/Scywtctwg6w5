@@ -36,13 +36,14 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val json = JSONObject(res)
         val stream = json.optString("securedLink")
 
-        if (stream.isNullOrEmpty()) return
+        if (stream.isEmpty()) return
 
         M3u8Helper.generateM3u8(
-            source = name,
-            streamUrl = stream,
-            referer = referer ?: mainUrl,
-            callback = callback
+            name,
+            stream,
+            referer ?: mainUrl,
+            null,
+            callback
         )
     }
 }
