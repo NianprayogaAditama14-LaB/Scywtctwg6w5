@@ -19,28 +19,30 @@ class EmbedPyroxExtractor : ExtractorApi() {
 
         val id = url.substringAfterLast("/")
 
-        val response = app.post(
+        val res = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
                 "User-Agent" to USER_AGENT,
                 "X-Requested-With" to "XMLHttpRequest",
-                "Referer" to url
+                "Referer" to (referer ?: url),
+                "Origin" to mainUrl
             ),
             data = mapOf(
-                "hash" to id
+                "hash" to id,
+                "r" to ""
             )
         ).text
 
-        val json = JSONObject(response)
+        val json = JSONObject(res)
         val stream = json.optString("securedLink")
 
-        if (stream.isNotEmpty()) {
-            M3u8Helper.generateM3u8(
-                name,
-                stream,
-                mainUrl,
-                callback
-            )
-        }
+        if (stream.isNullOrEmpty()) return
+
+        M3u8Helper.generateM3u8(
+            source = name,
+            streamUrl = stream,
+            referer = referer ?: mainUrl,
+            callback = callback
+        )
     }
 }
