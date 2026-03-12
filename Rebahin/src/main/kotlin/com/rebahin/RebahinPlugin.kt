@@ -11,6 +11,6 @@ class RebahinPlugin : Plugin() {
     override fun load(context: Context) {
         Rebahin.context = context
         registerMainAPI(Rebahin())
-        registerExtractorAPI(VidhideExtractor())
+        registerExtractorAPI(EmbedPyroxExtractor())
     }
 }

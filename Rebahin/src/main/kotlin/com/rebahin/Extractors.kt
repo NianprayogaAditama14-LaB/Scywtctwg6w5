@@ -1,12 +1,13 @@
 package com.rebahin
 
-import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.ExtractorApi
 import com.lagradost.cloudstream3.utils.*
+import org.json.JSONObject
 
-class VidhideExtractor : ExtractorApi() {
+class EmbedPyroxExtractor : ExtractorApi() {
 
-    override val name = "VidHide"
-    override val mainUrl = "https://vidhidehub.com"
+    override val name = "EmbedPyrox"
+    override val mainUrl = "https://embedpyrox.xyz"
     override val requiresReferer = true
 
     override suspend fun getUrl(
@@ -15,32 +16,33 @@ class VidhideExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+        val id = Regex("""([a-f0-9]{32})""").find(url)?.value ?: return
+        val api = "$mainUrl/player/index.php?data=$id&do=getVideo"
 
-        val res = app.get(
-            url,
+        val res = app.post(
+            api,
             headers = mapOf(
-                "Referer" to mainUrl,
+                "Origin" to mainUrl,
+                "Referer" to url,
+                "X-Requested-With" to "XMLHttpRequest",
+                "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
                 "User-Agent" to USER_AGENT
+            ),
+            data = mapOf(
+                "hash" to id,
+                "r" to (referer ?: "")
             )
-        )
+        ).text
 
-        val html = res.text
-
-        val stream = Regex("""hls\d["']?\s*:\s*["']([^"']+)""")
-            .find(html)
-            ?.groupValues
-            ?.get(1)
-            ?: return
-
-        val finalUrl =
-            if (stream.startsWith("/")) "$mainUrl$stream"
-            else stream
+        val json = JSONObject(res)
+        val m3u8 = json.optString("securedLink")
+        if (m3u8.isNullOrEmpty()) return
 
         M3u8Helper.generateM3u8(
-            name,
-            finalUrl,
-            mainUrl,
-            callback
+            name = name,
+            url = m3u8,
+            referer = referer ?: mainUrl,
+            callback = callback
         )
     }
 }
