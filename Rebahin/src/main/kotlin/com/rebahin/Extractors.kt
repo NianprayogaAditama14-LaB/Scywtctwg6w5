@@ -36,11 +36,12 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val streamUrl = json.optString("securedLink")
         if (streamUrl.isEmpty()) return
 
-        // Versi kompatibel Cloudstream terbaru
         callback(
             newExtractorLink(
                 name = name,
-                url = streamUrl
+                url = streamUrl,
+                source = name,  // parameter wajib
+                isM3u8 = true   // karena HLS
             )
         )
     }
