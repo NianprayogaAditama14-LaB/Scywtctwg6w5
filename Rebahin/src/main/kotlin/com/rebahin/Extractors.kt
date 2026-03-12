@@ -25,11 +25,12 @@ class VidhideExtractor : ExtractorApi() {
         val hls2 = Regex("""["']hls2["']\s*:\s*["']([^"']+)""").find(html)?.groupValues?.get(1)
 
         val stream = hls4 ?: hls3 ?: hls2 ?: return
+
         val finalLink = if (stream.startsWith("/")) mainUrl + stream else stream
 
         M3u8Helper.generateM3u8(
-            name = name,
-            url = finalLink,
+            source = name,
+            streamUrl = finalLink,
             referer = referer ?: mainUrl,
             callback = callback
         )
