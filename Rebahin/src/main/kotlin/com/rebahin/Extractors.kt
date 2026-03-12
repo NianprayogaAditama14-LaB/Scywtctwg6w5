@@ -4,8 +4,7 @@ import com.lagradost.cloudstream3.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.SubtitleFile
-import com.lagradost.cloudstream3.networking.app
-import com.lagradost.cloudstream3.networking.USER_AGENT
+import com.lagradost.cloudstream3.utils.USER_AGENT
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
@@ -20,14 +19,16 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+        // Ambil ID dari URL
         val id = Regex("""([a-f0-9]{32})""").find(url)?.value ?: return
         val api = "$mainUrl/player/index.php?data=$id&do=getVideo"
 
+        // Request POST
         val res = app.post(
             api,
             headers = mapOf(
                 "Origin" to mainUrl,
-                "Referer" to (referer ?: mainUrl),
+                "Referer" to url,
                 "X-Requested-With" to "XMLHttpRequest",
                 "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
                 "User-Agent" to USER_AGENT
@@ -42,6 +43,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val m3u8 = json.optString("securedLink")
         if (m3u8.isNullOrEmpty()) return
 
+        // Generate link M3U8
         M3u8Helper.generateM3u8(
             name = name,
             url = m3u8,
