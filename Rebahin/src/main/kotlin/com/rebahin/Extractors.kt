@@ -16,29 +16,31 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+
         val id = url.substringAfterLast("/")
+
         val response = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
                 "User-Agent" to USER_AGENT,
                 "X-Requested-With" to "XMLHttpRequest",
-                "Referer" to (referer ?: mainUrl),
-                "Origin" to mainUrl
+                "Referer" to url
             ),
             data = mapOf(
-                "hash" to id,
-                "r" to ""
+                "hash" to id
             )
         ).text
 
         val json = JSONObject(response)
         val securedLink = json.optString("securedLink")
-        if (securedLink.isEmpty()) return
 
-        val link = newExtractorLink(
-            name = name,
-            url = securedLink
-        )
-        callback(link)
+        if (securedLink.isNotEmpty()) {
+            val link = newExtractorLink(
+                name = name,
+                url = securedLink,
+                source = mainUrl
+            )
+            callback(link)
+        }
     }
 }
