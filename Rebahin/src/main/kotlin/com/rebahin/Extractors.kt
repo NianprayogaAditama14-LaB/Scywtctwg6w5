@@ -4,8 +4,8 @@ import com.lagradost.cloudstream3.ExtractorApi
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.SubtitleFile
-import com.lagradost.cloudstream3.utils.USER_AGENT
-import com.lagradost.cloudstream3.utils.app
+import com.lagradost.cloudstream3.networking.app
+import com.lagradost.cloudstream3.networking.USER_AGENT
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
@@ -40,7 +40,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
 
         val json = JSONObject(res)
         val m3u8 = json.optString("securedLink")
-        if (m3u8.isEmpty()) return
+        if (m3u8.isNullOrEmpty()) return
 
         M3u8Helper.generateM3u8(
             name = name,
