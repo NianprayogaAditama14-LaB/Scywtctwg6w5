@@ -37,9 +37,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
 
         val link = newExtractorLink(
             name = name,
-            url = securedLink,
-            referer = referer ?: mainUrl,
-            isM3u8 = true
+            url = securedLink
         )
         callback(link)
     }
