@@ -1,48 +1,52 @@
 package com.rebahin
 
 import com.lagradost.cloudstream3.ExtractorApi
-import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.SubtitleFile
+import com.lagradost.cloudstream3.utils.USER_AGENT
+import com.lagradost.cloudstream3.utils.get
+import com.lagradost.cloudstream3.utils.post
+import com.lagradost.cloudstream3.TvType
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
 
     override val name = "EmbedPyrox"
-    override val mainUrl = "https://embedpyrox.xyz"
-    override val requiresReferer = true
 
-    override suspend fun getUrl(
+    override suspend fun getLinks(
         url: String,
-        referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
+        subtitlesCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ) {
-        val id = Regex("""([a-f0-9]{32})""").find(url)?.value ?: return
-        val api = "$mainUrl/player/index.php?data=$id&do=getVideo"
+    ): Boolean {
+        val hash = url.substringAfterLast("/").substringBefore("?")
+        val baseUrl = "https://embedpyrox.xyz"
 
-        val res = app.post(
-            api,
+        val response = post(
+            "$baseUrl/player/index.php?data=$hash&do=getVideo",
+            data = "hash=$hash&r=$url",
             headers = mapOf(
-                "Origin" to mainUrl,
+                "Origin" to baseUrl,
                 "Referer" to url,
                 "X-Requested-With" to "XMLHttpRequest",
-                "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
-                "User-Agent" to USER_AGENT
-            ),
-            data = mapOf(
-                "hash" to id,
-                "r" to (referer ?: "")
+                "User-Agent" to USER_AGENT,
+                "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8"
             )
-        ).text
-
-        val json = JSONObject(res)
-        val m3u8 = json.optString("securedLink")
-        if (m3u8.isNullOrEmpty()) return
-
-        M3u8Helper.generateM3u8(
-            name = name,
-            url = m3u8,
-            referer = referer ?: mainUrl,
-            callback = callback
         )
+
+        val json = JSONObject(response.text)
+        val hlsUrl = json.optString("securedLink").ifEmpty { json.optString("videoSource") }
+
+        if (hlsUrl.isNotEmpty()) {
+            callback(
+                ExtractorLink(
+                    name = "EmbedPyrox",
+                    url = hlsUrl,
+                    quality = "HLS",
+                    type = TvType.Movie
+                )
+            )
+        }
+
+        return true
     }
 }
