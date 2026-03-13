@@ -62,18 +62,18 @@ class ImaxStreamsExtractor : ExtractorApi() {
 
         val m3u8 = Regex("""https?://[^"' ]+\.m3u8[^"' ]*""")
             .find(html)
-            ?.value ?: return
+            ?.value
+            ?: return
 
         callback(
             newExtractorLink(
                 name = name,
                 url = m3u8,
-                source = mainUrl
-            ) {
-                referer = mainUrl
-                isM3u8 = true
+                source = mainUrl,
+                isM3u8 = true,
+                referer = mainUrl,
                 quality = Qualities.Unknown.value
-            }
+            )
         )
     }
 }
