@@ -52,27 +52,23 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val html = app.get(
-            url,
-            headers = mapOf(
-                "User-Agent" to USER_AGENT,
-                "Referer" to mainUrl
-            )
-        ).text
+
+        val html = app.get(url, referer = mainUrl).text
 
         val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""")
             .find(html)
             ?.value
 
-        val unpacked = if (evalScript != null) {
-            JsUnpacker.unpackAndCombine(evalScript)
-        } else html
+        var unpacked = html
+        if (evalScript != null) {
+            unpacked = JsUnpacker.unpack(evalScript)
+        }
 
         val m3u8 = Regex("""https?://[^\s"'<>]+\.m3u8[^\s"'<>]*""")
             .find(unpacked)
             ?.value ?: return
 
-        callback(
+        callback.invoke(
             newExtractorLink(
                 source = name,
                 name = name,
@@ -83,8 +79,8 @@ class ImaxStreamsExtractor : ExtractorApi() {
                     "Origin" to mainUrl,
                     "User-Agent" to USER_AGENT
                 )
-                quality = Qualities.Unknown.value
                 isM3u8 = true
+                quality = Qualities.Unknown.value
             }
         )
     }
