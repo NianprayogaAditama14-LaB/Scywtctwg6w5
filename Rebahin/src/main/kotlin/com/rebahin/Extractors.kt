@@ -17,7 +17,6 @@ class EmbedPyroxExtractor : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
         val id = url.substringAfterLast("/")
-
         val response = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
@@ -30,6 +29,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
 
         val json = JSONObject(response)
         val securedLink = json.optString("securedLink")
+
         if (securedLink.isNotEmpty()) {
             callback(newExtractorLink(
                 name = name,
@@ -67,8 +67,8 @@ class ImaxStreamsExtractor : ExtractorApi() {
             url = m3u8,
             source = mainUrl
         ) {
-            this.referer = mainUrl
-            this.isM3u8 = true
+            referer = mainUrl
+            isM3u8 = true
         })
     }
 }
