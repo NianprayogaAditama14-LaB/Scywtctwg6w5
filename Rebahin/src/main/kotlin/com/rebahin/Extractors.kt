@@ -16,7 +16,6 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val id = url.substringAfterLast("/")
 
         val response = app.post(
@@ -31,7 +30,6 @@ class EmbedPyroxExtractor : ExtractorApi() {
 
         val json = JSONObject(response)
         val securedLink = json.optString("securedLink")
-
         if (securedLink.isNotEmpty()) {
             callback(newExtractorLink(
                 name = name,
@@ -54,7 +52,6 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val html = app.get(
             url,
             headers = mapOf(
@@ -63,8 +60,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
             )
         ).text
 
-        val m3u8 = Regex("""https?://[^"]+\.m3u8[^"]*""")
-            .find(html)?.value ?: return
+        val m3u8 = Regex("""https?://[^"]+master\.m3u8[^"]*""").find(html)?.value ?: return
 
         callback(newExtractorLink(
             name = name,
