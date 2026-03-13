@@ -60,10 +60,9 @@ class ImaxStreamsExtractor : ExtractorApi() {
             )
         ).text
 
-        val linkMatch = Regex("""https://[^\s"'<>]+acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+        val m3u8Url = Regex("""https://[^\s"'<>]+acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
             .find(htmlContent)
-
-        val m3u8Url = linkMatch?.value ?: return
+            ?.value ?: return
 
         callback(
             newExtractorLink(
