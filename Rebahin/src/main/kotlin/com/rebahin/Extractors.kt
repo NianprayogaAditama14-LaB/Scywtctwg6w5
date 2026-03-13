@@ -5,7 +5,6 @@ import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
-
     override val name = "EmbedPyrox"
     override val mainUrl = "https://embedpyrox.xyz"
     override val requiresReferer = true
@@ -31,17 +30,17 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            callback(newExtractorLink(
+            val link = newExtractorLink(
                 name = name,
                 url = securedLink,
                 source = mainUrl
-            ))
+            )
+            callback(link)
         }
     }
 }
 
 class ImaxStreamsExtractor : ExtractorApi() {
-
     override val name = "ImaxStreams"
     override val mainUrl = "https://imaxstreams.com"
     override val requiresReferer = true
@@ -65,10 +64,9 @@ class ImaxStreamsExtractor : ExtractorApi() {
         callback(newExtractorLink(
             name = name,
             url = m3u8,
-            source = mainUrl
-        ) {
-            referer = mainUrl
+            source = mainUrl,
+            referer = mainUrl,
             isM3u8 = true
-        })
+        ))
     }
 }
