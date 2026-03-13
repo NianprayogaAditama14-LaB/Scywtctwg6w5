@@ -70,9 +70,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
         val link = newExtractorLink(
             name = name,
             url = m3u8,
-            source = mainUrl,
-            referer = "https://imaxstreams.com/",
-            isM3u8 = true
+            source = mainUrl
         )
 
         callback(link)
