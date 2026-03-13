@@ -30,12 +30,11 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            val link = newExtractorLink(
+            callback(newExtractorLink(
                 name = name,
                 url = securedLink,
                 source = mainUrl
-            )
-            callback(link)
+            ))
         }
     }
 }
@@ -64,9 +63,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
         callback(newExtractorLink(
             name = name,
             url = m3u8,
-            source = mainUrl,
-            referer = mainUrl,
-            isM3u8 = true
+            source = mainUrl
         ))
     }
 }
