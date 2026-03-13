@@ -1,6 +1,6 @@
 package com.rebahin
 
-import com.lagradost.cloudstream3.ExtractorApi
+import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.json.JSONObject
 
@@ -16,33 +16,70 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val id = Regex("""([a-f0-9]{32})""").find(url)?.value ?: return
-        val api = "$mainUrl/player/index.php?data=$id&do=getVideo"
 
-        val res = app.post(
-            api,
+        val id = url.substringAfterLast("/")
+
+        val response = app.post(
+            "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
-                "Origin" to mainUrl,
-                "Referer" to url,
+                "User-Agent" to USER_AGENT,
                 "X-Requested-With" to "XMLHttpRequest",
-                "Content-Type" to "application/x-www-form-urlencoded; charset=UTF-8",
-                "User-Agent" to USER_AGENT
+                "Referer" to url
             ),
             data = mapOf(
-                "hash" to id,
-                "r" to (referer ?: "")
+                "hash" to id
             )
         ).text
 
-        val json = JSONObject(res)
-        val m3u8 = json.optString("securedLink")
-        if (m3u8.isNullOrEmpty()) return
+        val json = JSONObject(response)
+        val securedLink = json.optString("securedLink")
 
-        M3u8Helper.generateM3u8(
+        if (securedLink.isNotEmpty()) {
+            val link = newExtractorLink(
+                name = name,
+                url = securedLink,
+                source = mainUrl
+            )
+            callback(link)
+        }
+    }
+}
+
+
+
+class ImaxStreamsExtractor : ExtractorApi() {
+
+    override val name = "ImaxStreams"
+    override val mainUrl = "https://imaxstreams.com"
+    override val requiresReferer = true
+
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+
+        val html = app.get(
+            url,
+            headers = mapOf(
+                "User-Agent" to USER_AGENT,
+                "Referer" to mainUrl
+            )
+        ).text
+
+        val m3u8 = Regex("""https?://[^"]+master\.m3u8[^"]*""")
+            .find(html)?.value ?: return
+
+        val link = newExtractorLink(
             name = name,
             url = m3u8,
-            referer = referer ?: mainUrl,
-            callback = callback
-        )
+            source = name
+        ) {
+            referer = "https://imaxstreams.com/"
+            isM3u8 = true
+        }
+
+        callback(link)
     }
 }
