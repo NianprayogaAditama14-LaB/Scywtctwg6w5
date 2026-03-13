@@ -33,12 +33,11 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            val link = newExtractorLink(
+            callback(newExtractorLink(
                 name = name,
                 url = securedLink,
                 source = mainUrl
-            )
-            callback(link)
+            ))
         }
     }
 }
@@ -64,15 +63,15 @@ class ImaxStreamsExtractor : ExtractorApi() {
             )
         ).text
 
-        val m3u8 = Regex("""https?://[^"]+master\.m3u8[^"]*""")
-            .find(html)?.value ?: return
+        val m3u8 = Regex("""https?://[^"]+\.m3u8[^"]*""").find(html)?.value ?: return
 
-        val link = newExtractorLink(
+        callback(newExtractorLink(
             name = name,
             url = m3u8,
             source = mainUrl
-        )
-
-        callback(link)
+        ) {
+            this.referer = mainUrl
+            this.isM3u8 = true
+        })
     }
 }
