@@ -52,6 +52,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+
         val html = app.get(
             url,
             headers = mapOf(
@@ -64,15 +65,18 @@ class ImaxStreamsExtractor : ExtractorApi() {
             .find(html)
             ?.value ?: return
 
-        callback(
+        callback.invoke(
             newExtractorLink(
+                source = name,
                 name = name,
-                url = m3u8,
-                source = mainUrl,
-                referer = mainUrl,
-                isM3u8 = true,
+                url = m3u8
+            ) {
+                headers = mapOf(
+                    "Referer" to mainUrl,
+                    "User-Agent" to USER_AGENT
+                )
                 quality = Qualities.Unknown.value
-            )
+            }
         )
     }
 }
