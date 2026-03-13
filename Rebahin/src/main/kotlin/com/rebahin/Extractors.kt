@@ -16,9 +16,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val id = url.substringAfterLast("/")
-
         val response = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
@@ -26,26 +24,15 @@ class EmbedPyroxExtractor : ExtractorApi() {
                 "X-Requested-With" to "XMLHttpRequest",
                 "Referer" to url
             ),
-            data = mapOf(
-                "hash" to id
-            )
+            data = mapOf("hash" to id)
         ).text
-
         val json = JSONObject(response)
         val securedLink = json.optString("securedLink")
-
         if (securedLink.isNotEmpty()) {
-            val link = newExtractorLink(
-                name = name,
-                url = securedLink,
-                source = mainUrl
-            )
-            callback(link)
+            callback(ExtractorLink(name, securedLink, mainUrl))
         }
     }
 }
-
-
 
 class ImaxStreamsExtractor : ExtractorApi() {
 
@@ -59,27 +46,8 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
-        val html = app.get(
-            url,
-            headers = mapOf(
-                "User-Agent" to USER_AGENT,
-                "Referer" to mainUrl
-            )
-        ).text
-
-        val m3u8 = Regex("""https?://[^"]+master\.m3u8[^"]*""")
-            .find(html)?.value ?: return
-
-        val link = newExtractorLink(
-            name = name,
-            url = m3u8,
-            source = name
-        ) {
-            referer = "https://imaxstreams.com/"
-            isM3u8 = true
-        }
-
-        callback(link)
+        val html = app.get(url, headers = mapOf("User-Agent" to USER_AGENT, "Referer" to mainUrl)).text
+        val m3u8 = Regex("""https?://[^"]+master\.m3u8[^"]*""").find(html)?.value ?: return
+        callback(ExtractorLink(name, m3u8, name, referer = "https://imaxstreams.com/", isM3u8 = true))
     }
 }
