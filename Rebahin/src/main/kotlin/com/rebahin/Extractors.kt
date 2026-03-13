@@ -52,7 +52,6 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val html = app.get(
             url,
             headers = mapOf(
@@ -61,13 +60,12 @@ class ImaxStreamsExtractor : ExtractorApi() {
             )
         ).text
 
-        val m3u8 =
-            Regex("""https://[^\s"'<>]+acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-                .find(html)
-                ?.value
-                ?: return
+        val m3u8 = Regex("""https://[^\s"'<>]+acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+            .find(html)
+            ?.value
+            ?: return
 
-        callback.invoke(
+        callback(
             newExtractorLink(
                 source = name,
                 name = name,
@@ -78,8 +76,8 @@ class ImaxStreamsExtractor : ExtractorApi() {
                     "Origin" to mainUrl,
                     "User-Agent" to USER_AGENT
                 )
-                isM3u8 = true
                 quality = Qualities.Unknown.value
+                isM3u8 = true
             }
         )
     }
