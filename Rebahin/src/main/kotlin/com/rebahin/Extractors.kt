@@ -53,18 +53,18 @@ class ImaxStreamsExtractor : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
         val html = app.get(url, referer = mainUrl).text
-        var unpackedHtml = html
+        var unpacked = html
         val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
             .find(html)
             ?.value
 
         if (evalScript != null) {
-            val decoded = JsUnpacker().unpack(evalScript)
-            if (decoded != null) unpackedHtml = decoded
+            val decoded = JsUnpacker().unpack()
+            if (decoded != null) unpacked = decoded
         }
 
         val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-            .find(unpackedHtml)
+            .find(unpacked)
             ?.value ?: return
 
         callback.invoke(
