@@ -30,11 +30,11 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            callback.invoke(
+            callback(
                 newExtractorLink(
-                    source = name,
                     name = name,
-                    url = securedLink
+                    url = securedLink,
+                    source = name
                 )
             )
         }
@@ -52,7 +52,6 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val html = app.get(url, referer = mainUrl).text
 
         val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
@@ -69,7 +68,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
             .find(unpacked)
             ?.value ?: return
 
-        callback.invoke(
+        callback(
             newExtractorLink(
                 source = name,
                 name = "Acek CDN",
