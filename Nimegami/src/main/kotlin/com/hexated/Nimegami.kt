@@ -58,8 +58,14 @@ class Nimegami : MainAPI() {
     private fun Element.toSearchResult(): AnimeSearchResponse? {
         val href = fixUrl(this.selectFirst("a")!!.attr("href"))
         val title = this.selectFirst("h2 a")?.text() ?: return null
-        val posterUrl = (this.selectFirst("noscript img") ?: this.selectFirst("img"))?.attr("src")
+
+        // Ambil poster HD, fallback ke data-setbg jika img biasa kecil
+        val posterUrl = (this.selectFirst("noscript img")?.attr("src")
+            ?: this.selectFirst("img")?.attr("src")
+            ?: this.selectFirst(".product__sidebar__view__item.set-bg")?.attr("data-setbg"))
+
         val episode = this.selectFirst("ul li:contains(Episode), div.eps-archive")?.ownText()?.filter { it.isDigit() }?.toIntOrNull()
+
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
             addSub(episode)
@@ -128,13 +134,9 @@ class Nimegami : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-
         if (data.isBlank()) return false
-
         val decoded = try { base64Decode(data) } catch (_: Exception) { data }
-
         val clean = decoded.replace("\\/", "/").removePrefix("\"").removeSuffix("\"")
-
         val sources = tryParseJson<ArrayList<Sources>>(clean) ?: return false
 
         sources.forEach { source ->
@@ -145,7 +147,7 @@ class Nimegami : MainAPI() {
                     val stream = Regex("""stream_url":"(https:[^"]+)""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")?.replace("\\u0026", "&")
                     if (!stream.isNullOrBlank()) {
                         callback.invoke(
-                            newExtractorLink("Nimegami", "Nimegami", stream, ExtractorLinkType.VIDEO) {
+                            newExtractorLink("Nimegami", "Nimegami ${source.format}", stream, ExtractorLinkType.VIDEO) {
                                 this.quality = getQualityFromName(source.format)
                                 this.headers = mapOf("Referer" to "https://dlgan.space/")
                             }
@@ -154,7 +156,6 @@ class Nimegami : MainAPI() {
                 }
             }
         }
-
         return true
     }
 
