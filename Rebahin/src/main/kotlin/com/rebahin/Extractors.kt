@@ -60,7 +60,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
 
         var unpacked = html
         if (evalScript != null) {
-            unpacked = JsUnpacker().unpack(packedJS = evalScript) ?: html
+            unpacked = JsUnpacker().unpack(evalScript) ?: html
         }
 
         val m3u8 = Regex("""https?://[^\s"'<>]+\.m3u8[^\s"'<>]*""")
