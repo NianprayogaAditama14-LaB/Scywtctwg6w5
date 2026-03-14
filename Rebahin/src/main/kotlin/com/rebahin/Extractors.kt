@@ -68,19 +68,20 @@ class ImaxStreamsExtractor : ExtractorApi() {
             .find(unpacked)
             ?.value ?: return
 
-        callback.invoke(
-            newExtractorLink(
-                source = name,
-                name = "Acek CDN",
-                url = m3u8,
-                type = ExtractorLinkType.M3U8,
-                quality = Qualities.Unknown.value,
-                headers = mapOf(
-                    "Referer" to mainUrl,
-                    "Origin" to mainUrl,
-                    "User-Agent" to USER_AGENT
-                )
-            )
+        val link = newExtractorLink(
+            source = name,
+            name = "Acek CDN",
+            url = m3u8,
+            type = ExtractorLinkType.M3U8
         )
+
+        link.quality = Qualities.Unknown.value
+        link.headers = mapOf(
+            "Referer" to mainUrl,
+            "Origin" to mainUrl,
+            "User-Agent" to USER_AGENT
+        )
+
+        callback.invoke(link)
     }
 }
