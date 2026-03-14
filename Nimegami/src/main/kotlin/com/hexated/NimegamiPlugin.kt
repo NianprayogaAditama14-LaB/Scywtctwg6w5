@@ -1,3 +1,4 @@
+
 package com.hexated
 
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
@@ -8,5 +9,6 @@ import android.content.Context
 class NimegamiPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Nimegami())
+        registerExtractorAPI(Berkasdrive())
     }
 }
