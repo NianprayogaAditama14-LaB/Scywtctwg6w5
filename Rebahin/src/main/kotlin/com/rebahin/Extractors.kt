@@ -30,12 +30,14 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            callback(
+            callback.invoke(
                 newExtractorLink(
                     source = name,
                     name = name,
                     url = securedLink
-                )
+                ) {
+                    isM3u8 = true
+                }
             )
         }
     }
@@ -52,36 +54,35 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val html = app.get(url, referer = mainUrl).text
 
-        var unpacked = html
-        val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
-            .find(html)
-            ?.value
+        val document = app.get(url, referer = mainUrl).document
 
-        if (evalScript != null) {
-            val decoded = JsUnpacker().unpack()
-            if (decoded != null) unpacked = decoded
-        }
+        document.select("script").forEach { script ->
 
-        val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-            .find(unpacked)
-            ?.value ?: return
+            if (script.data().contains("eval(function(p,a,c,k,e,d)")) {
 
-        callback(
-            newExtractorLink(
-                source = name,
-                name = "Acek CDN",
-                url = m3u8
-            ) {
-                isM3u8 = true
-                quality = Qualities.Unknown.value
-                headers = mapOf(
-                    "Referer" to mainUrl,
-                    "Origin" to mainUrl,
-                    "User-Agent" to USER_AGENT
+                val unpacked = getAndUnpack(script.data())
+
+                val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+                    .find(unpacked)
+                    ?.value ?: return@forEach
+
+                callback.invoke(
+                    newExtractorLink(
+                        source = name,
+                        name = "Acek CDN",
+                        url = m3u8
+                    ) {
+                        isM3u8 = true
+                        quality = Qualities.Unknown.value
+                        headers = mapOf(
+                            "Referer" to mainUrl,
+                            "Origin" to mainUrl,
+                            "User-Agent" to USER_AGENT
+                        )
+                    }
                 )
             }
-        )
+        }
     }
 }
