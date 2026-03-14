@@ -42,7 +42,6 @@ class EmbedPyroxExtractor : ExtractorApi() {
 }
 
 class ImaxStreamsExtractor : ExtractorApi() {
-
     override val name = "ImaxStreams"
     override val mainUrl = "https://imaxstreams.com"
     override val requiresReferer = true
@@ -53,21 +52,21 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+        val html = app.get(url, referer = mainUrl).text
 
-        val html = app.get(url, referer = url).text
+        val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
+            .find(html)
+            ?.value
 
-        val evalScript = Regex(
-            """eval\(function\(p,a,c,k,e,d.*?\)\)""",
-            RegexOption.DOT_MATCHES_ALL
-        ).find(html)?.value
+        var unpacked = if (evalScript != null) {
+            JsUnpacker(evalScript).unpack() ?: html
+        } else {
+            html
+        }
 
-        val unpacked = evalScript?.let {
-            JsUnpacker(it).unpack()
-        } ?: html
-
-        val m3u8 = Regex(
-            """"hls2"\s*:\s*"([^"]+)""""
-        ).find(unpacked)?.groupValues?.get(1) ?: return
+        val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+            .find(unpacked)
+            ?.value ?: return
 
         callback(
             newExtractorLink(
@@ -78,7 +77,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
                 isM3u8 = true
                 quality = Qualities.Unknown.value
                 headers = mapOf(
-                    "Referer" to url,
+                    "Referer" to mainUrl,
                     "Origin" to mainUrl,
                     "User-Agent" to USER_AGENT
                 )
