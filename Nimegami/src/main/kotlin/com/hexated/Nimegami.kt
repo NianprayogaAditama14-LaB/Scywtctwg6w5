@@ -25,9 +25,6 @@ class Nimegami : MainAPI() {
 
     companion object {
 
-        private const val USER_AGENT =
-            "Mozilla/5.0 (Android 10; Mobile) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
-
         fun getType(t: String): TvType {
             return when {
                 t.contains("Tv", true) -> TvType.Anime
@@ -218,43 +215,43 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val html = app.get(
-            url,
-            headers = mapOf("User-Agent" to USER_AGENT)
-        ).text
+        val id =
+            Regex("id=([a-zA-Z0-9]+)")
+                .find(url)?.groupValues?.get(1)
 
-        Regex("""https://[^"]+\.mp4[^"]*""")
-            .findAll(html)
-            .forEach { match ->
+        val name =
+            Regex("name=([^&]+)")
+                .find(url)?.groupValues?.get(1)
 
-                val video = match.value
-                    .replace("\\u0026", "&")
-                    .replace("\\/", "/")
+        if (id == null || name == null) return
 
-                val q = when {
-                    video.contains("360") -> 360
-                    video.contains("480") -> 480
-                    video.contains("720") -> 720
-                    video.contains("1080") -> 1080
-                    else -> getQualityFromName(quality)
-                }
+        val api =
+            "https://api.dlgan.space/api.php?id=$id&name=$name"
 
-                callback.invoke(
-                    newExtractorLink(
-                        "Nimegami",
-                        "Nimegami $q",
-                        video,
-                        ExtractorLinkType.VIDEO
-                    ) {
-                        this.quality = q
-                        this.referer = "https://dlgan.space/"
-                        this.headers = mapOf(
-                            "User-Agent" to USER_AGENT,
-                            "Referer" to "https://dlgan.space/"
-                        )
-                    }
-                )
+        val json =
+            app.get(api).parsedSafe<Map<String, Any>>() ?: return
+
+        val stream =
+            json["stream_url"] as? String ?: return
+
+        val q = when {
+            name.contains("360") -> 360
+            name.contains("480") -> 480
+            name.contains("720") -> 720
+            name.contains("1080") -> 1080
+            else -> getQualityFromName(quality)
+        }
+
+        callback.invoke(
+            newExtractorLink(
+                "Nimegami",
+                "Nimegami $q",
+                stream,
+                ExtractorLinkType.VIDEO
+            ) {
+                this.quality = q
             }
+        )
     }
 
     private fun Elements.getContent(css: String): Elements {
