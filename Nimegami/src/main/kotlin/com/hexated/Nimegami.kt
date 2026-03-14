@@ -94,7 +94,7 @@ class Nimegami : MainAPI() {
         val trailer = document.selectFirst("div#Trailer iframe")?.attr("src")
 
         val episodes = document.select("div.list_eps_stream li").mapNotNull {
-            val episode = Regex("Episode\\s?(\\d+)").find(it.text())?.groupValues?.getOrNull(0)?.toIntOrNull()
+            val episode = Regex("Episode\\s?(\\d+)").find(it.text())?.groupValues?.getOrNull(1)?.toIntOrNull()
             val link = it.attr("data")
             newEpisode(url = link, initializer = { this.episode = episode }, fix = false)
         }
@@ -136,7 +136,10 @@ class Nimegami : MainAPI() {
         val sources = tryParseJson<ArrayList<Sources>>(base64Decode(data))
         sources?.forEach { source ->
             source.url?.forEach { url ->
-                loadFixedExtractor(url, source.format, "$mainUrl/", subtitleCallback, callback)
+                when {
+                    url.contains("dlgan.space") -> loadFixedExtractor(url, source.format, "$mainUrl/", subtitleCallback, callback)
+                    url.contains("berkasdrive.com") -> loadFixedExtractor(url, source.format, "$mainUrl/", subtitleCallback, callback)
+                }
             }
         }
         return true
