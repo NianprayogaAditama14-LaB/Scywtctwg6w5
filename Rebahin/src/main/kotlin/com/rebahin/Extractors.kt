@@ -2,9 +2,11 @@ package com.rebahin
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import org.json.JSONArray
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
+
     override val name = "EmbedPyrox"
     override val mainUrl = "https://embedpyrox.xyz"
     override val requiresReferer = true
@@ -15,6 +17,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+
         val id = url.substringAfterLast("/")
 
         val response = app.post(
@@ -57,29 +60,60 @@ class ImaxStreamsExtractor : ExtractorApi() {
 
         val html = app.get(url, referer = referer ?: mainUrl).text
 
-        val packed = Regex(
-            """eval\(function\(p,a,c,k,e,d.*?\)\)""",
-            RegexOption.DOT_MATCHES_ALL
-        ).find(html)?.value
-
         val unpacked = try {
+            val packed = Regex(
+                """eval\(function\(p,a,c,k,e,d.*?\)\)""",
+                RegexOption.DOT_MATCHES_ALL
+            ).find(html)?.value
             packed?.let { JsUnpacker(it).unpack() } ?: html
         } catch (e: Exception) {
             html
         }
 
-        val hls4 = Regex("""["']hls4["']\s*:\s*["']([^"']+)""")
+        val sourcesJson = Regex("""sources\s*:\s*(\[[^\]]+\])""")
             .find(unpacked)?.groupValues?.get(1)
 
-        val hls3 = Regex("""["']hls3["']\s*:\s*["']([^"']+)""")
-            .find(unpacked)?.groupValues?.get(1)
+        if (sourcesJson != null) {
 
-        val hls2 = Regex("""["']hls2["']\s*:\s*["']([^"']+)""")
-            .find(unpacked)?.groupValues?.get(1)
+            val arr = JSONArray(sourcesJson)
 
-        val links = listOfNotNull(hls4, hls3, hls2)
+            for (i in 0 until arr.length()) {
 
-        links.forEach { link ->
+                val obj = arr.getJSONObject(i)
+                val link = obj.optString("file")
+                val label = obj.optString("label")
+
+                if (link.isNotEmpty()) {
+
+                    val fixed = if (link.startsWith("/")) {
+                        "$mainUrl$link"
+                    } else link
+
+                    callback.invoke(
+                        newExtractorLink(
+                            source = name,
+                            name = label.ifEmpty { name },
+                            url = fixed,
+                            type = ExtractorLinkType.M3U8
+                        ).apply {
+                            headers = mapOf(
+                                "Referer" to url,
+                                "Origin" to mainUrl,
+                                "User-Agent" to USER_AGENT
+                            )
+                        }
+                    )
+                }
+            }
+
+            return
+        }
+
+        val regex = Regex("""["']hls\d["']\s*:\s*["']([^"']+)""")
+
+        regex.findAll(unpacked).forEach {
+
+            val link = it.groupValues[1]
 
             val fixed = if (link.startsWith("/")) {
                 "$mainUrl$link"
@@ -92,9 +126,8 @@ class ImaxStreamsExtractor : ExtractorApi() {
                     url = fixed,
                     type = ExtractorLinkType.M3U8
                 ).apply {
-                    quality = Qualities.Unknown.value
                     headers = mapOf(
-                        "Referer" to mainUrl,
+                        "Referer" to url,
                         "Origin" to mainUrl,
                         "User-Agent" to USER_AGENT
                     )
