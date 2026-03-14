@@ -16,6 +16,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
         val id = url.substringAfterLast("/")
+
         val response = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
@@ -42,6 +43,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
 }
 
 class ImaxStreamsExtractor : ExtractorApi() {
+
     override val name = "ImaxStreams"
     override val mainUrl = "https://imaxstreams.com"
     override val requiresReferer = true
@@ -53,22 +55,34 @@ class ImaxStreamsExtractor : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val html = app.get(url, referer = mainUrl).text
+        val html = app.get(url, referer = referer ?: mainUrl).text
 
-        val packed = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
-            .find(html)
-            ?.value
+        val packed = Regex(
+            """eval\(function\(p,a,c,k,e,d.*?\)\)""",
+            RegexOption.DOT_MATCHES_ALL
+        ).find(html)?.value
 
-        val unpacked = packed?.let { JsUnpacker(it).unpack() } ?: html
+        val unpacked = try {
+            packed?.let { JsUnpacker(it).unpack() } ?: html
+        } catch (e: Exception) {
+            html
+        }
 
-        val m3u8Links = Regex("""https?://[^\s"'<>]+\.m3u8|/stream/[^\s"'<>]+\.m3u8""")
-            .findAll(unpacked)
-            .map { it.value }
-            .toList()
+        val hls4 = Regex(
+            """"hls4"\s*:\s*"([^"]+\.m3u8[^"]*)""""
+        ).find(unpacked)?.groupValues?.get(1)
 
-        if (m3u8Links.isEmpty()) return
+        val hls3 = Regex(
+            """"hls3"\s*:\s*"([^"]+\.m3u8[^"]*)""""
+        ).find(unpacked)?.groupValues?.get(1)
 
-        m3u8Links.forEach { link ->
+        val hls2 = Regex(
+            """"hls2"\s*:\s*"([^"]+\.m3u8[^"]*)""""
+        ).find(unpacked)?.groupValues?.get(1)
+
+        val links = listOfNotNull(hls4, hls3, hls2)
+
+        links.forEach { link ->
 
             val fixedUrl = if (link.startsWith("/")) {
                 "$mainUrl$link"
