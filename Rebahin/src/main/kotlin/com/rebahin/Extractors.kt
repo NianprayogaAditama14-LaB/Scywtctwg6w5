@@ -56,19 +56,14 @@ class ImaxStreamsExtractor : ExtractorApi() {
             referer = mainUrl
         ).text
 
-        val evalRegex = Regex("""eval\(function\(p,a,c,k,e.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
-
         var unpacked = html
-
+        val evalRegex = Regex("""eval\(function\(p,a,c,k,e.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
         evalRegex.findAll(html).forEach { match ->
             val decoded = JsUnpacker().unpack(match.value)
-            if (decoded != null) {
-                unpacked += decoded
-            }
+            if (decoded != null) unpacked = decoded
         }
 
         val m3u8Regex = Regex("""https://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-
         val m3u8 = m3u8Regex.find(unpacked)?.value ?: return
 
         callback.invoke(
