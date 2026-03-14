@@ -2,6 +2,7 @@ package com.rebahin
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
     override val name = "EmbedPyrox"
@@ -25,10 +26,11 @@ class EmbedPyroxExtractor : ExtractorApi() {
             data = mapOf("hash" to id)
         ).text
 
-        val securedLink = org.json.JSONObject(response).optString("securedLink")
+        val json = JSONObject(response)
+        val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            callback.invoke(
+            callback(
                 newExtractorLink(
                     source = name,
                     name = name,
@@ -50,23 +52,23 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val html = app.get(
-            url,
-            headers = mapOf("User-Agent" to USER_AGENT),
-            referer = mainUrl
-        ).text
+        val html = app.get(url, referer = mainUrl).text
 
         var unpacked = html
-        val evalRegex = Regex("""eval\(function\(p,a,c,k,e.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
-        evalRegex.findAll(html).forEach { match ->
-            val decoded = JsUnpacker().unpack(match.value)
+        val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
+            .find(html)
+            ?.value
+
+        if (evalScript != null) {
+            val decoded = JsUnpacker().unpack()
             if (decoded != null) unpacked = decoded
         }
 
-        val m3u8Regex = Regex("""https://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-        val m3u8 = m3u8Regex.find(unpacked)?.value ?: return
+        val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+            .find(unpacked)
+            ?.value ?: return
 
-        callback.invoke(
+        callback(
             newExtractorLink(
                 source = name,
                 name = "Acek CDN",
@@ -75,8 +77,8 @@ class ImaxStreamsExtractor : ExtractorApi() {
                 isM3u8 = true
                 quality = Qualities.Unknown.value
                 headers = mapOf(
-                    "Referer" to "https://imaxstreams.com/",
-                    "Origin" to "https://imaxstreams.com",
+                    "Referer" to mainUrl,
+                    "Origin" to mainUrl,
                     "User-Agent" to USER_AGENT
                 )
             }
