@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
+
     override val name = "EmbedPyrox"
     override val mainUrl = "https://embedpyrox.xyz"
     override val requiresReferer = true
@@ -16,7 +17,9 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+
         val id = url.substringAfterLast("/")
+
         val response = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
@@ -24,13 +27,16 @@ class EmbedPyroxExtractor : ExtractorApi() {
                 "X-Requested-With" to "XMLHttpRequest",
                 "Referer" to url
             ),
-            data = mapOf("hash" to id)
+            data = mapOf(
+                "hash" to id
+            )
         ).text
 
         val json = JSONObject(response)
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
+
             callback.invoke(
                 newExtractorLink(
                     source = name,
@@ -45,7 +51,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
 class ImaxStreamsExtractor : ExtractorApi() {
 
     override val name = "ImaxStreams"
-    override val mainUrl = "https://imaxstreams.com"
+    override val mainUrl = "https://imaxstreams.net"
     override val requiresReferer = true
 
     override suspend fun getUrl(
@@ -62,7 +68,9 @@ class ImaxStreamsExtractor : ExtractorApi() {
                 """eval\(function\(p,a,c,k,e,d.*?\)\)""",
                 RegexOption.DOT_MATCHES_ALL
             ).find(html)?.value
+
             packed?.let { JsUnpacker(it).unpack() } ?: html
+
         } catch (e: Exception) {
             html
         }
@@ -128,6 +136,47 @@ class ImaxStreamsExtractor : ExtractorApi() {
                         "Origin" to mainUrl,
                         "User-Agent" to USER_AGENT
                     )
+                }
+            )
+        }
+    }
+}
+
+class ImaxDirectExtractor : ExtractorApi() {
+
+    override val name = "ImaxDirect"
+    override val mainUrl = "https://imaxstreams.net"
+    override val requiresReferer = true
+
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+
+        val headers = mapOf(
+            "Referer" to "$mainUrl/",
+            "Origin" to mainUrl,
+            "User-Agent" to USER_AGENT
+        )
+
+        val html = app.get(url, headers = headers).text
+
+        val playlist = Regex("""https://[^"' ]+\.txt""")
+            .find(html)
+            ?.value
+
+        if (playlist != null) {
+
+            callback.invoke(
+                newExtractorLink(
+                    source = name,
+                    name = name,
+                    url = playlist,
+                    type = ExtractorLinkType.M3U8
+                ).apply {
+                    this.headers = headers
                 }
             )
         }

@@ -8,12 +8,12 @@ import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
 class RebahinPlugin : Plugin() {
+
     override fun load(context: Context) {
         Rebahin.context = context
-
         registerMainAPI(Rebahin())
-
         registerExtractorAPI(EmbedPyroxExtractor())
         registerExtractorAPI(ImaxStreamsExtractor())
+        registerExtractorAPI(ImaxDirectExtractor())
     }
 }
