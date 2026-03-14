@@ -1,6 +1,5 @@
 package com.hexated
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
@@ -15,15 +14,13 @@ open class Berkasdrive : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val doc = app.get(url, referer = referer).document
-        val video = doc.selectFirst("video source")?.attr("src")
-            ?: Regex("""https?://[^"]+\.mp4""").find(doc.html())?.value
-            ?: return
+        val res = app.get(url, referer = referer).document
+        val video = res.select("video#player source").attr("src")
+        if (video.isBlank()) return
 
         callback.invoke(
             newExtractorLink(name, name, video, INFER_TYPE) {
                 this.referer = referer ?: mainUrl
-                this.quality = extractQuality(video)
             }
         )
     }
@@ -32,11 +29,7 @@ open class Berkasdrive : ExtractorApi() {
 open class Dlgan : ExtractorApi() {
     override val name = "Dlgan"
     override val mainUrl = "https://dlgan.space"
-    override val requiresReferer = false
-
-    data class DlganResponse(
-        @JsonProperty("stream_url") val streamUrl: String? = null
-    )
+    override val requiresReferer = true
 
     override suspend fun getUrl(
         url: String,
@@ -44,19 +37,17 @@ open class Dlgan : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val id = url.substringAfterLast("/")
-        val json = app.get(
-            "$mainUrl/streaming.php?proxy=1&id=$id",
-            referer = "$mainUrl/"
-        ).parsedSafe<DlganResponse>() ?: return
-
-        val video = json.streamUrl ?: return
+        val id = url.substringAfterLast("/").substringBefore("?")
+        val json = app.get("$mainUrl/streaming.php?proxy=1&id=$id", referer = referer).parsedSafe<DlganResponse>() ?: return
+        val video = json.data?.stream_url ?: json.data?.direct_url ?: return
 
         callback.invoke(
             newExtractorLink(name, name, video, INFER_TYPE) {
-                this.referer = "$mainUrl/"
-                this.quality = extractQuality(video)
+                this.referer = referer ?: mainUrl
             }
         )
     }
+
+    data class DlganData(val stream_url: String?, val direct_url: String?)
+    data class DlganResponse(val data: DlganData?)
 }
