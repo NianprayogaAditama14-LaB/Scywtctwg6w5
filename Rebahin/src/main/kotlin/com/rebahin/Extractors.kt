@@ -68,31 +68,28 @@ class ImaxStreamsExtractor : ExtractorApi() {
             html
         }
 
-        val hls4 = Regex(
-            """"hls4"\s*:\s*"([^"]+\.m3u8[^"]*)""""
-        ).find(unpacked)?.groupValues?.get(1)
+        val hls4 = Regex("""["']hls4["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
-        val hls3 = Regex(
-            """"hls3"\s*:\s*"([^"]+\.m3u8[^"]*)""""
-        ).find(unpacked)?.groupValues?.get(1)
+        val hls3 = Regex("""["']hls3["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
-        val hls2 = Regex(
-            """"hls2"\s*:\s*"([^"]+\.m3u8[^"]*)""""
-        ).find(unpacked)?.groupValues?.get(1)
+        val hls2 = Regex("""["']hls2["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
         val links = listOfNotNull(hls4, hls3, hls2)
 
         links.forEach { link ->
 
-            val fixedUrl = if (link.startsWith("/")) {
+            val fixed = if (link.startsWith("/")) {
                 "$mainUrl$link"
             } else link
 
             callback.invoke(
                 newExtractorLink(
                     source = name,
-                    name = "ImaxStreams",
-                    url = fixedUrl,
+                    name = name,
+                    url = fixed,
                     type = ExtractorLinkType.M3U8
                 ).apply {
                     quality = Qualities.Unknown.value
