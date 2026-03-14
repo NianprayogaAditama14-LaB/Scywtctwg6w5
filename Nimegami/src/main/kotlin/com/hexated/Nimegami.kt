@@ -195,11 +195,21 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
-        val sources =
-            tryParseJson<ArrayList<Sources>>(base64Decode(data))
+        val decoded = try {
+            base64Decode(data)
+        } catch (e: Exception) {
+            data
+        }
 
-        sources?.forEach { source ->
+        val clean = decoded.replace("\\/", "/")
+
+        val sources =
+            tryParseJson<ArrayList<Sources>>(clean)
+                ?: return false
+
+        sources.forEach { source ->
             source.url?.forEach { url ->
+
                 if (url.contains("dlgan.space")) {
                     extractVideo(url, source.format, callback)
                 }
@@ -216,12 +226,12 @@ class Nimegami : MainAPI() {
     ) {
 
         val id =
-            Regex("id=([a-zA-Z0-9]+)")
-                .find(url)?.groupValues?.get(1)
+            Regex("id=([^&]+)")
+                .find(url)?.groupValues?.getOrNull(1)
 
         val name =
             Regex("name=([^&]+)")
-                .find(url)?.groupValues?.get(1)
+                .find(url)?.groupValues?.getOrNull(1)
 
         if (id == null || name == null) return
 
@@ -245,11 +255,14 @@ class Nimegami : MainAPI() {
         callback.invoke(
             newExtractorLink(
                 "Nimegami",
-                "Nimegami $q",
+                "Nimegami ${q}p",
                 stream,
                 ExtractorLinkType.VIDEO
             ) {
                 this.quality = q
+                this.headers = mapOf(
+                    "Referer" to mainUrl
+                )
             }
         )
     }
