@@ -25,6 +25,9 @@ class Nimegami : MainAPI() {
 
     companion object {
 
+        private const val USER_AGENT =
+            "Mozilla/5.0 (Android 10; Mobile) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+
         fun getType(t: String): TvType {
             return when {
                 t.contains("Tv", true) -> TvType.Anime
@@ -199,16 +202,9 @@ class Nimegami : MainAPI() {
             tryParseJson<ArrayList<Sources>>(base64Decode(data))
 
         sources?.forEach { source ->
-
             source.url?.forEach { url ->
-
                 if (url.contains("dlgan.space")) {
-
-                    extractVideo(
-                        url,
-                        source.format,
-                        callback
-                    )
+                    extractVideo(url, source.format, callback)
                 }
             }
         }
@@ -222,17 +218,18 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val html = app.get(url).text
+        val html = app.get(
+            url,
+            headers = mapOf("User-Agent" to USER_AGENT)
+        ).text
 
         Regex("""https://[^"]+\.mp4[^"]*""")
             .findAll(html)
-            .forEach {
+            .forEach { match ->
 
-                val video =
-                    it.value.replace("\\u0026", "&")
-
-                if (!video.contains("/st/"))
-                    return@forEach
+                val video = match.value
+                    .replace("\\u0026", "&")
+                    .replace("\\/", "/")
 
                 val q = when {
                     video.contains("360") -> 360
@@ -250,7 +247,11 @@ class Nimegami : MainAPI() {
                         ExtractorLinkType.VIDEO
                     ) {
                         this.quality = q
-                        this.referer = url
+                        this.referer = "https://dlgan.space/"
+                        this.headers = mapOf(
+                            "User-Agent" to USER_AGENT,
+                            "Referer" to "https://dlgan.space/"
+                        )
                     }
                 )
             }
