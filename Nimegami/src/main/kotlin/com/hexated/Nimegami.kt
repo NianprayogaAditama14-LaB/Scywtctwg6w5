@@ -23,25 +23,6 @@ class Nimegami : MainAPI() {
         TvType.OVA
     )
 
-    companion object {
-
-        fun getType(t: String): TvType {
-            return when {
-                t.contains("Tv", true) -> TvType.Anime
-                t.contains("Movie", true) -> TvType.AnimeMovie
-                t.contains("OVA", true) -> TvType.OVA
-                else -> TvType.Anime
-            }
-        }
-
-        fun getStatus(t: String?): ShowStatus {
-            return if (t?.contains("On-Going", true) == true)
-                ShowStatus.Ongoing
-            else
-                ShowStatus.Completed
-        }
-    }
-
     override val mainPage = mainPageOf(
         "" to "Updated Anime",
         "/type/tv" to "Anime",
@@ -109,9 +90,10 @@ class Nimegami : MainAPI() {
             document.selectFirst("div.coverthumbnail img")
                 ?.attr("src")
 
-        val bgPoster =
-            document.selectFirst("div.thumbnail-a img")
-                ?.attr("src")
+        val description =
+            document.select("div#Sinopsis p")
+                .text()
+                .trim()
 
         val tags =
             table.getContent("Kategori").select("a")
@@ -123,27 +105,14 @@ class Nimegami : MainAPI() {
                 .filter { it.isDigit() }
                 .toIntOrNull()
 
-        val status =
-            getStatus(document.selectFirst("h1")?.text())
-
-        val type =
-            getType(table.getContent("Type").text())
-
-        val description =
-            document.select("div#Sinopsis p")
-                .text()
-                .trim()
-
-        val trailer =
-            document.selectFirst("div#Trailer iframe")
-                ?.attr("src")
+        val type = TvType.Anime
 
         val episodes =
             document.select("div.list_eps_stream li")
                 .mapNotNull { ep ->
 
                     val data = ep.attr("data")
-                    if (data.isNullOrBlank()) return@mapNotNull null
+                    if (data.isBlank()) return@mapNotNull null
 
                     val episode =
                         Regex("Episode\\s?(\\d+)")
@@ -156,29 +125,14 @@ class Nimegami : MainAPI() {
                     }
                 }
 
-        val tracker =
-            APIHolder.getTracker(
-                listOf(title),
-                TrackerType.getTypes(type),
-                year,
-                true
-            )
-
         return newAnimeLoadResponse(title, url, type) {
 
-            posterUrl = tracker?.image ?: poster
-            backgroundPosterUrl = tracker?.cover ?: bgPoster
-
-            this.year = year
-            showStatus = status
+            posterUrl = poster
             plot = description
+            this.year = year
             this.tags = tags
 
             addEpisodes(DubStatus.Subbed, episodes)
-
-            addTrailer(trailer)
-            addMalId(tracker?.malId)
-            addAniListId(tracker?.aniId?.toIntOrNull())
         }
     }
 
@@ -193,13 +147,12 @@ class Nimegami : MainAPI() {
 
         val decoded = try {
             base64Decode(data)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             data
         }
 
-        val clean = decoded
-            .replace("\\/", "/")
-            .trim()
+        val clean =
+            decoded.replace("\\/", "/")
 
         val sources =
             tryParseJson<ArrayList<Sources>>(clean)
@@ -208,10 +161,8 @@ class Nimegami : MainAPI() {
         sources.forEach { source ->
             source.url?.forEach { url ->
 
-                val fixed = url.replace("\\/", "/")
-
-                if (fixed.contains("dlgan.space")) {
-                    extractDlgan(fixed, source.format, callback)
+                if (url.contains("dlgan.space")) {
+                    extractDlgan(url, source.format, callback)
                 }
             }
         }
@@ -225,37 +176,34 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val id =
-            Regex("id=([a-zA-Z0-9]+)")
-                .find(url)?.groupValues?.getOrNull(1)
+        val html = app.get(
+            url,
+            headers = mapOf(
+                "Referer" to mainUrl
+            )
+        ).text
 
-        val name =
-            Regex("name=([^&]+)")
-                .find(url)?.groupValues?.getOrNull(1)
+        val streamUrl =
+            Regex("""stream_url":"(https:[^"]+)""")
+                .find(html)
+                ?.groupValues?.get(1)
+                ?.replace("\\/", "/")
+                ?.replace("\\u0026", "&")
 
-        if (id == null || name == null) return
-
-        val api =
-            "https://api.dlgan.space/api.php?id=$id&name=$name"
-
-        val json =
-            app.get(api).parsedSafe<Map<String, Any>>() ?: return
-
-        val stream =
-            json["stream_url"] as? String ?: return
+        if (streamUrl.isNullOrBlank()) return
 
         val q = getQualityFromName(quality)
 
         callback.invoke(
             newExtractorLink(
                 "Nimegami",
-                "Nimegami",
-                stream,
+                "Nimegami $quality",
+                streamUrl,
                 ExtractorLinkType.VIDEO
             ) {
                 this.quality = q
                 this.headers = mapOf(
-                    "Referer" to mainUrl
+                    "Referer" to "https://dlgan.space/"
                 )
             }
         )
