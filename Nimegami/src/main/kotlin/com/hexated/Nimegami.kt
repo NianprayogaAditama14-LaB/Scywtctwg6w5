@@ -132,33 +132,4 @@ class Nimegami : MainAPI() {
         if (data.isBlank()) return false
 
         val decoded = try { base64Decode(data) } catch (_: Exception) { data }
-
-        val clean = decoded.replace("\\/", "/").removePrefix("\"").removeSuffix("\"")
-
-        val sources = tryParseJson<ArrayList<Sources>>(clean) ?: return false
-
-        sources.forEach { source ->
-            source.url?.forEach { url ->
-                val fixed = url.replace("\\/", "/")
-                if (fixed.contains("dlgan.space")) {
-                    val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
-                    val stream = Regex("""stream_url":"(https:[^"]+)""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")?.replace("\\u0026", "&")
-                    if (!stream.isNullOrBlank()) {
-                        callback.invoke(
-                            newExtractorLink("Nimegami", "Nimegami ${source.format}", stream, ExtractorLinkType.VIDEO) {
-                                this.quality = getQualityFromName(source.format)
-                                this.headers = mapOf("Referer" to "https://dlgan.space/")
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        return true
-    }
-
-    private fun Elements.getContent(css: String): Elements = this.select("tr:contains($css) td:last-child")
-
-    data class Sources(@JsonProperty("format") val format: String? = null, @JsonProperty("url") val url: ArrayList<String>? = arrayListOf())
-}
+        val clean = decoded.replace("\\/", "/").removePrefix("\"").removeSuffix("\"
