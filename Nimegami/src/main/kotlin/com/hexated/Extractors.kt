@@ -4,35 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 
-open class Mitedrive : ExtractorApi() {
-    override val name = "Mitedrive"
-    override val mainUrl = "https://mitedrive.com"
-    override val requiresReferer = false
-
-    override suspend fun getUrl(
-        url: String,
-        referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ) {
-        val id = url.substringAfterLast("/")
-        val video = app.post(
-            "https://api.mitedrive.com/api/view/$id",
-            referer = "$mainUrl/",
-            data = mapOf("slug" to id)
-        ).parsedSafe<Response>()?.data?.url ?: return
-
-        callback.invoke(
-            newExtractorLink(name, name, video, INFER_TYPE) {
-                this.referer = "$mainUrl/"
-            }
-        )
-    }
-
-    data class Data(@JsonProperty("original_url") val url: String? = null)
-    data class Response(@JsonProperty("data") val data: Data? = null)
-}
-
 open class Berkasdrive : ExtractorApi() {
     override val name = "Berkasdrive"
     override val mainUrl = "https://dl.berkasdrive.com"
@@ -52,32 +23,20 @@ open class Berkasdrive : ExtractorApi() {
         callback.invoke(
             newExtractorLink(name, name, video, INFER_TYPE) {
                 this.referer = referer ?: mainUrl
+                this.quality = extractQuality(video)
             }
         )
     }
 }
 
-open class Videogami : ExtractorApi() {
-    override val name = "Videogami"
-    override val mainUrl = "https://video.nimegami.id"
+open class Dlgan : ExtractorApi() {
+    override val name = "Dlgan"
+    override val mainUrl = "https://dlgan.space"
     override val requiresReferer = false
 
-    override suspend fun getUrl(
-        url: String,
-        referer: String?,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ) {
-        val decoded = base64Decode(url.substringAfter("url="))
-        val id = decoded.substringAfterLast("/")
-        loadExtractor("https://hxfile.co/embed-$id.html", "$mainUrl/", subtitleCallback, callback)
-    }
-}
-
-open class Krakenfiles : ExtractorApi() {
-    override val name = "Krakenfiles"
-    override val mainUrl = "https://krakenfiles.com"
-    override val requiresReferer = true
+    data class DlganResponse(
+        @JsonProperty("stream_url") val streamUrl: String? = null
+    )
 
     override suspend fun getUrl(
         url: String,
@@ -85,21 +44,18 @@ open class Krakenfiles : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val html = app.get(url, referer = "$mainUrl/").text
+        val id = url.substringAfterLast("/")
+        val json = app.get(
+            "$mainUrl/streaming.php?proxy=1&id=$id",
+            referer = "$mainUrl/"
+        ).parsedSafe<DlganResponse>() ?: return
 
-        val video = Regex("""https://phs\d+\.krakencloud\.net/play/video/[^\"]+""")
-            .find(html)?.value ?: return
+        val video = json.streamUrl ?: return
 
         callback.invoke(
-            newExtractorLink(
-                name,
-                name,
-                video,
-                INFER_TYPE
-            ) {
+            newExtractorLink(name, name, video, INFER_TYPE) {
                 this.referer = "$mainUrl/"
-                this.headers = mapOf("User-Agent" to USER_AGENT)
-                this.quality = Qualities.P1080.value
+                this.quality = extractQuality(video)
             }
         )
     }
