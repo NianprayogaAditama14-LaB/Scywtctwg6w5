@@ -4,59 +4,56 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
-import com.lagradost.cloudstream3.MainAPI
-import com.lagradost.cloudstream3.SearchResponse
-import com.lagradost.cloudstream3.TvType
-import com.lagradost.cloudstream3.mainPageOf
-import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.httpsify
-import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.*
 import java.net.URI
 import org.jsoup.nodes.Element
 
-
 class Rebahin : MainAPI() {
+
     companion object {
         var context: android.content.Context? = null
     }
 
     override var mainUrl = "https://wiapr.com"
-    private var directUrl: String? = null
     override var name = "Rebahin🐝"
     override val hasMainPage = true
     override var lang = "id"
 
+    private var directUrl: String? = null
+
     override val supportedTypes =
         setOf(TvType.Movie, TvType.TvSeries, TvType.Anime, TvType.AsianDrama)
 
-    override val mainPage =
-        mainPageOf(
-            "/page/%d/?s&search=advanced&post_type=movie&index&orderby&genre&movieyear&country&quality=" to "Update Terbaru",
-            "category/box-office/page/%d/" to "Box Office",
-            "category/serial-tv/page/%d/" to "Serial TV",
-            "category/anime/page/%d/" to "Anime",
-            "category/animation/page/%d/" to "Animasi",
-            "category/donghua/page/%d/" to "Donghua",
-            "country/korea/page/%d/" to "Serial TV Korea",
-            "country/indonesia/page/%d/" to "Serial TV Indonesia",
-        )
+    override val mainPage = mainPageOf(
+        "/page/%d/?s&search=advanced&post_type=movie&index&orderby&genre&movieyear&country&quality=" to "Update Terbaru",
+        "category/box-office/page/%d/" to "Box Office",
+        "category/serial-tv/page/%d/" to "Serial TV",
+        "category/anime/page/%d/" to "Anime",
+        "category/animation/page/%d/" to "Animasi",
+        "category/donghua/page/%d/" to "Donghua",
+        "country/korea/page/%d/" to "Serial TV Korea",
+        "country/indonesia/page/%d/" to "Serial TV Indonesia",
+    )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         context?.let { StarPopupHelper.showStarPopupIfNeeded(it) }
-        val data = request.data.format(page)
-        val document = app.get("$mainUrl/$data").document
+
+        val document = app.get("$mainUrl/${request.data.format(page)}").document
+
         val home = document.select("article.item").mapNotNull { it.toSearchResult() }
+
         return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.selectFirst("h2.entry-title > a")?.text()?.trim() ?: return null
-        val href = fixUrl(this.selectFirst("a")!!.attr("href"))
-        val posterUrl = fixUrlNull(this.selectFirst("a > img")?.getImageAttr()).fixImageQuality()
-        val ratingText = this.selectFirst("div.gmr-rating-item")?.ownText()?.trim()
+        val title = selectFirst("h2.entry-title > a")?.text()?.trim() ?: return null
+        val href = fixUrl(selectFirst("a")!!.attr("href"))
+        val posterUrl = fixUrlNull(selectFirst("a > img")?.getImageAttr()).fixImageQuality()
+
+        val ratingText = selectFirst("div.gmr-rating-item")?.ownText()?.trim()
 
         val quality =
-            this.select("div.gmr-qual, div.gmr-quality-item > a")
+            select("div.gmr-qual, div.gmr-quality-item > a")
                 .text()
                 .trim()
                 .replace("-", "")
@@ -69,7 +66,7 @@ class Rebahin : MainAPI() {
                     ?.groupValues
                     ?.getOrNull(1)
                     ?.toIntOrNull()
-                    ?: this.select("div.gmr-numbeps > span").text().toIntOrNull()
+                    ?: select("div.gmr-numbeps > span").text().toIntOrNull()
 
             newAnimeSearchResponse(title, href, TvType.TvSeries) {
                 this.posterUrl = posterUrl
@@ -88,44 +85,17 @@ class Rebahin : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-
         val document =
-            app.get("${mainUrl}?s=$query&post_type[]=post&post_type[]=tv", timeout = 50L)
-                .document
+            app.get("$mainUrl?s=$query&post_type[]=post&post_type[]=tv").document
 
         return document.select("article.item").mapNotNull { it.toSearchResult() }
-    }
-
-    private fun Element.toRecommendResult(): SearchResponse? {
-
-        val title =
-            selectFirst("h2.entry-title > a")
-                ?.text()
-                ?.trim()
-                ?: return null
-
-        val href =
-            selectFirst("h2.entry-title > a")
-                ?.attr("href")
-                ?.trim()
-                ?: return null
-
-        val img = selectFirst("div.content-thumbnail img")
-
-        val posterUrl =
-            img?.attr("src")
-                ?.ifBlank { img.attr("data-src") }
-                ?.ifBlank { img.attr("srcset")?.split(" ")?.firstOrNull() }
-
-        return newMovieSearchResponse(title, href, TvType.Movie) {
-            this.posterUrl = fixUrlNull(posterUrl)
-        }
     }
 
     override suspend fun load(url: String): LoadResponse {
 
         val fetch = app.get(url)
         directUrl = getBaseUrl(fetch.url)
+
         val document = fetch.document
 
         val title =
@@ -162,7 +132,6 @@ class Rebahin : MainAPI() {
         val rating =
             document.selectFirst("div.gmr-meta-rating > span[itemprop=ratingValue]")
                 ?.text()
-                ?.trim()
 
         val actors =
             document.select("div.gmr-moviedata")
@@ -177,8 +146,7 @@ class Rebahin : MainAPI() {
                 ?.toIntOrNull()
 
         val recommendations =
-            document
-                .select("article.item.col-md-20")
+            document.select("article.item.col-md-20")
                 .mapNotNull { it.toRecommendResult() }
 
         return if (tvType == TvType.TvSeries) {
@@ -205,10 +173,9 @@ class Rebahin : MainAPI() {
                         newEpisode(href) {
                             this.name = name
                             this.episode = episode
-                            this.season = if (name.contains(" ")) season else null
+                            this.season = season
                         }
                     }
-                    .filter { it.episode != null }
 
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
@@ -248,46 +215,36 @@ class Rebahin : MainAPI() {
         val document = app.get(data).document
         val id = document.selectFirst("#muvipro_player_content_id")?.attr("data-id")
 
-        if (id.isNullOrEmpty()) {
+        val servers = document.select("ul.muvipro-player-tabs li a")
 
-            document.select("ul.muvipro-player-tabs li a").amap { ele ->
+        servers.amap { ele ->
 
-                val iframe =
-                    app.get(fixUrl(ele.attr("href"))).document
-                        .selectFirst("iframe, div.gmr-embed-responsive iframe")
-                        ?.getIframeAttr()
-                        ?.let { httpsify(it) }
-                        ?: return@amap
+            val tab = ele.attr("href").removePrefix("#")
 
-                loadExtractor(iframe, "$directUrl/", subtitleCallback, callback)
+            val serverDoc = if (!id.isNullOrEmpty()) {
+
+                app.post(
+                    "$directUrl/wp-admin/admin-ajax.php",
+                    data = mapOf(
+                        "action" to "muvipro_player_content",
+                        "tab" to tab,
+                        "post_id" to id
+                    ),
+                    timeout = 60
+                ).document
+
+            } else {
+
+                app.get(fixUrl(ele.attr("href"))).document
             }
 
-        } else {
+            val iframe =
+                serverDoc.select("iframe").firstOrNull()
+                    ?.attr("src")
+                    ?.let { httpsify(it) }
+                    ?: return@amap
 
-            document.select("ul.muvipro-player-tabs li a").amap { ele ->
-
-                val tab = ele.attr("href").removePrefix("#")
-
-                val server =
-                    app.post(
-                        "$directUrl/wp-admin/admin-ajax.php",
-                        data = mapOf(
-                            "action" to "muvipro_player_content",
-                            "tab" to tab,
-                            "post_id" to id
-                        ),
-                        timeout = 60
-                    ).document
-
-                val iframe =
-                    server
-                        .selectFirst("iframe, div.gmr-embed-responsive iframe")
-                        ?.getIframeAttr()
-                        ?.let { httpsify(it) }
-                        ?: return@amap
-
-                loadExtractor(iframe, "$directUrl/", subtitleCallback, callback)
-            }
+            loadExtractor(iframe, "$directUrl/", subtitleCallback, callback)
         }
 
         document.select("ul.gmr-download-list li a").forEach { link ->
@@ -302,16 +259,11 @@ class Rebahin : MainAPI() {
 
     private fun Element.getImageAttr(): String {
         return when {
-            this.hasAttr("data-src") -> this.attr("abs:data-src")
-            this.hasAttr("data-lazy-src") -> this.attr("abs:data-lazy-src")
-            this.hasAttr("srcset") -> this.attr("abs:srcset").substringBefore(" ")
-            else -> this.attr("abs:src")
+            hasAttr("data-src") -> attr("abs:data-src")
+            hasAttr("data-lazy-src") -> attr("abs:data-lazy-src")
+            hasAttr("srcset") -> attr("abs:srcset").substringBefore(" ")
+            else -> attr("abs:src")
         }
-    }
-
-    private fun Element?.getIframeAttr(): String? {
-        return this?.attr("data-litespeed-src").takeIf { it?.isNotEmpty() == true }
-            ?: this?.attr("src")
     }
 
     private fun String?.fixImageQuality(): String? {
