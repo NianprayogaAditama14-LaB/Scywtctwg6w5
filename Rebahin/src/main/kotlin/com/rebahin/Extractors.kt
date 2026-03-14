@@ -6,7 +6,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
-
     override val name = "EmbedPyrox"
     override val mainUrl = "https://embedpyrox.xyz"
     override val requiresReferer = true
@@ -17,9 +16,7 @@ class EmbedPyroxExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val id = url.substringAfterLast("/")
-
         val response = app.post(
             "$mainUrl/player/index.php?data=$id&do=getVideo",
             headers = mapOf(
