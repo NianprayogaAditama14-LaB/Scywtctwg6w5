@@ -146,7 +146,7 @@ class Nimegami : MainAPI() {
                 ?.attr("src")
 
         val episodes =
-            document.select("div.list_eps_stream li.select-eps")
+            document.select("div.list_eps_stream li")
                 .mapNotNull { ep ->
 
                     val data = ep.attr("data")
