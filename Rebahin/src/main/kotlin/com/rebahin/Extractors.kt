@@ -52,15 +52,17 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+
         val html = app.get(url, referer = mainUrl).text
-        var unpacked = html
+
         val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
             .find(html)
             ?.value
 
-        if (evalScript != null) {
-            val decoded = JsUnpacker().unpack()
-            if (decoded != null) unpacked = decoded
+        val unpacked = if (evalScript != null) {
+            JsUnpacker(evalScript).unpack() ?: html
+        } else {
+            html
         }
 
         val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
