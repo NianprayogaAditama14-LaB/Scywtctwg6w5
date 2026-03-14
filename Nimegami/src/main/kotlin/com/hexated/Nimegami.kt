@@ -146,18 +146,19 @@ class Nimegami : MainAPI() {
                 ?.attr("src")
 
         val episodes =
-            document.select("div.list_eps_stream li")
-                .mapNotNull {
+            document.select("div.list_eps_stream li.select-eps")
+                .mapNotNull { ep ->
+
+                    val data = ep.attr("data")
+                    if (data.isNullOrBlank()) return@mapNotNull null
 
                     val episode =
                         Regex("Episode\\s?(\\d+)")
-                            .find(it.text())
+                            .find(ep.text())
                             ?.groupValues?.getOrNull(1)
                             ?.toIntOrNull()
 
-                    val link = it.attr("data")
-
-                    newEpisode(link) {
+                    newEpisode(data) {
                         this.episode = episode
                     }
                 }
@@ -195,13 +196,17 @@ class Nimegami : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
 
+        if (data.isBlank()) return false
+
         val decoded = try {
             base64Decode(data)
         } catch (e: Exception) {
             data
         }
 
-        val clean = decoded.replace("\\/", "/")
+        val clean = decoded
+            .replace("\\/", "/")
+            .trim()
 
         val sources =
             tryParseJson<ArrayList<Sources>>(clean)
@@ -210,8 +215,10 @@ class Nimegami : MainAPI() {
         sources.forEach { source ->
             source.url?.forEach { url ->
 
-                if (url.contains("dlgan.space")) {
-                    extractVideo(url, source.format, callback)
+                val fixed = url.replace("\\/", "/")
+
+                if (fixed.contains("dlgan.space")) {
+                    extractVideo(fixed, source.format, callback)
                 }
             }
         }
@@ -226,7 +233,7 @@ class Nimegami : MainAPI() {
     ) {
 
         val id =
-            Regex("id=([^&]+)")
+            Regex("id=([a-zA-Z0-9]+)")
                 .find(url)?.groupValues?.getOrNull(1)
 
         val name =
@@ -259,8 +266,8 @@ class Nimegami : MainAPI() {
                 stream,
                 ExtractorLinkType.VIDEO
             ) {
-                this.quality = q
-                this.headers = mapOf(
+                quality = q
+                headers = mapOf(
                     "Referer" to mainUrl
                 )
             }
