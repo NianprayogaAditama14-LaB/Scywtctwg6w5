@@ -20,7 +20,6 @@ class Berkasdrive : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val doc: Document = app.get(url).document
 
         doc.select("video source").forEach {
@@ -33,7 +32,7 @@ class Berkasdrive : ExtractorApi() {
                         url = video,
                         type = ExtractorLinkType.MP4
                     ) {
-                        this.referer = "https://dl.berkasdrive.com/"
+                        this.referer = mainUrl
                         this.quality = getQuality(video)
                     }
                 )
@@ -50,7 +49,7 @@ class Berkasdrive : ExtractorApi() {
                         url = video,
                         type = ExtractorLinkType.MP4
                     ) {
-                        this.referer = "https://dl.berkasdrive.com/"
+                        this.referer = mainUrl
                         this.quality = getQuality(video)
                     }
                 )
