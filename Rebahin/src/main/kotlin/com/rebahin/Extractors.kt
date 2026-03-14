@@ -30,11 +30,11 @@ class EmbedPyroxExtractor : ExtractorApi() {
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            callback(
+            callback.invoke(
                 newExtractorLink(
+                    source = name,
                     name = name,
-                    url = securedLink,
-                    source = name
+                    url = securedLink
                 )
             )
         }
@@ -58,7 +58,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
             .find(html)
             ?.value
 
-        var unpacked = if (evalScript != null) {
+        val unpacked = if (evalScript != null) {
             JsUnpacker(evalScript).unpack() ?: html
         } else {
             html
@@ -68,20 +68,19 @@ class ImaxStreamsExtractor : ExtractorApi() {
             .find(unpacked)
             ?.value ?: return
 
-        callback(
+        callback.invoke(
             newExtractorLink(
                 source = name,
                 name = "Acek CDN",
-                url = m3u8
-            ) {
-                isM3u8 = true
-                quality = Qualities.Unknown.value
+                url = m3u8,
+                type = ExtractorLinkType.M3U8,
+                quality = Qualities.Unknown.value,
                 headers = mapOf(
                     "Referer" to mainUrl,
                     "Origin" to mainUrl,
                     "User-Agent" to USER_AGENT
                 )
-            }
+            )
         )
     }
 }
