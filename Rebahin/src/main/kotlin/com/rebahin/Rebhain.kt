@@ -84,6 +84,21 @@ class Rebahin : MainAPI() {
         }
     }
 
+    // ======== Tambahkan toRecommendResult ========
+    private fun Element.toRecommendResult(): SearchResponse? {
+        val title = selectFirst("h2.entry-title > a")?.text()?.trim() ?: return null
+        val href = selectFirst("h2.entry-title > a")?.attr("href")?.trim() ?: return null
+        val img = selectFirst("div.content-thumbnail img")
+        val posterUrl = img?.attr("src")
+            ?.ifBlank { img.attr("data-src") }
+            ?.ifBlank { img.attr("srcset")?.split(" ")?.firstOrNull() }
+
+        return newMovieSearchResponse(title, href, TvType.Movie) {
+            this.posterUrl = fixUrlNull(posterUrl)
+        }
+    }
+    // ============================================
+
     override suspend fun search(query: String): List<SearchResponse> {
         val document =
             app.get("$mainUrl?s=$query&post_type[]=post&post_type[]=tv").document
@@ -135,7 +150,7 @@ class Rebahin : MainAPI() {
 
         val actors =
             document.select("div.gmr-moviedata")
-                .last()
+                .lastOrNull()
                 ?.select("span[itemprop=actors]")
                 ?.map { it.select("a").text() }
 
