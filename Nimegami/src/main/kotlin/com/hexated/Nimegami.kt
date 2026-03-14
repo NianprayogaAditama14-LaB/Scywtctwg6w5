@@ -76,15 +76,8 @@ class Nimegami : MainAPI() {
             (this.selectFirst("noscript img")
                 ?: this.selectFirst("img"))?.attr("src")
 
-        val episode =
-            this.selectFirst("ul li:contains(Episode)")
-                ?.ownText()
-                ?.filter { it.isDigit() }
-                ?.toIntOrNull()
-
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
-            addSub(episode)
         }
     }
 
@@ -218,7 +211,7 @@ class Nimegami : MainAPI() {
                 val fixed = url.replace("\\/", "/")
 
                 if (fixed.contains("dlgan.space")) {
-                    extractVideo(fixed, source.format, callback)
+                    extractDlgan(fixed, source.format, callback)
                 }
             }
         }
@@ -226,7 +219,7 @@ class Nimegami : MainAPI() {
         return true
     }
 
-    private suspend fun extractVideo(
+    private suspend fun extractDlgan(
         url: String,
         quality: String?,
         callback: (ExtractorLink) -> Unit
@@ -251,23 +244,17 @@ class Nimegami : MainAPI() {
         val stream =
             json["stream_url"] as? String ?: return
 
-        val q = when {
-            name.contains("360") -> 360
-            name.contains("480") -> 480
-            name.contains("720") -> 720
-            name.contains("1080") -> 1080
-            else -> getQualityFromName(quality)
-        }
+        val q = getQualityFromName(quality)
 
         callback.invoke(
             newExtractorLink(
                 "Nimegami",
-                "Nimegami ${q}p",
+                "Nimegami",
                 stream,
                 ExtractorLinkType.VIDEO
             ) {
-                quality = q
-                headers = mapOf(
+                this.quality = q
+                this.headers = mapOf(
                     "Referer" to mainUrl
                 )
             }
