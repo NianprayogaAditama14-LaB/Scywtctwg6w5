@@ -52,34 +52,43 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
+
         val html = app.get(url, referer = mainUrl).text
 
-        val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
+        val packed = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
             .find(html)
             ?.value
 
-        val unpacked = evalScript?.let { JsUnpacker(it).unpack() } ?: html
+        val unpacked = packed?.let { JsUnpacker(it).unpack() } ?: html
 
-        val m3u8 = Regex("""https?://[^\s"'<>]+\.m3u8|/stream/[^\s"'<>]+\.m3u8""")
-            .find(unpacked)
-            ?.value ?: return
+        val m3u8Links = Regex("""https?://[^\s"'<>]+\.m3u8|/stream/[^\s"'<>]+\.m3u8""")
+            .findAll(unpacked)
+            .map { it.value }
+            .toList()
 
-        val fixedUrl = if (m3u8.startsWith("/")) "$mainUrl$m3u8" else m3u8
+        if (m3u8Links.isEmpty()) return
 
-        callback.invoke(
-            newExtractorLink(
-                source = name,
-                name = "ImaxStreams",
-                url = fixedUrl,
-                type = ExtractorLinkType.M3U8
-            ).apply {
-                quality = Qualities.Unknown.value
-                headers = mapOf(
-                    "Referer" to mainUrl,
-                    "Origin" to mainUrl,
-                    "User-Agent" to USER_AGENT
-                )
-            }
-        )
+        m3u8Links.forEach { link ->
+
+            val fixedUrl = if (link.startsWith("/")) {
+                "$mainUrl$link"
+            } else link
+
+            callback.invoke(
+                newExtractorLink(
+                    source = name,
+                    name = "ImaxStreams",
+                    url = fixedUrl,
+                    type = ExtractorLinkType.M3U8
+                ).apply {
+                    quality = Qualities.Unknown.value
+                    headers = mapOf(
+                        "Referer" to mainUrl,
+                        "Origin" to mainUrl,
+                        "User-Agent" to USER_AGENT
+                    )
+                }
+            )
+        }
     }
 }
