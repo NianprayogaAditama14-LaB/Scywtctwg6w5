@@ -58,30 +58,28 @@ class ImaxStreamsExtractor : ExtractorApi() {
             .find(html)
             ?.value
 
-        val unpacked = if (evalScript != null) {
-            JsUnpacker(evalScript).unpack() ?: html
-        } else {
-            html
-        }
+        val unpacked = evalScript?.let { JsUnpacker(it).unpack() } ?: html
 
-        val m3u8 = Regex("""https?://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
+        val m3u8 = Regex("""https?://[^\s"'<>]+\.m3u8|/stream/[^\s"'<>]+\.m3u8""")
             .find(unpacked)
             ?.value ?: return
 
-        val link = newExtractorLink(
-            source = name,
-            name = "Acek CDN",
-            url = m3u8,
-            type = ExtractorLinkType.M3U8
-        )
+        val fixedUrl = if (m3u8.startsWith("/")) "$mainUrl$m3u8" else m3u8
 
-        link.quality = Qualities.Unknown.value
-        link.headers = mapOf(
-            "Referer" to mainUrl,
-            "Origin" to mainUrl,
-            "User-Agent" to USER_AGENT
+        callback.invoke(
+            newExtractorLink(
+                source = name,
+                name = "ImaxStreams",
+                url = fixedUrl,
+                type = ExtractorLinkType.M3U8
+            ).apply {
+                quality = Qualities.Unknown.value
+                headers = mapOf(
+                    "Referer" to mainUrl,
+                    "Origin" to mainUrl,
+                    "User-Agent" to USER_AGENT
+                )
+            }
         )
-
-        callback.invoke(link)
     }
 }
