@@ -85,14 +85,20 @@ open class Krakenfiles : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val doc = app.get(url, referer = "$mainUrl/").document
-        val video = doc.selectFirst("video source")?.attr("src")
-            ?: Regex("""https://[^"]*krakencloud[^"]*""").find(doc.html())?.value
-            ?: return
+        val html = app.get(url, referer = "$mainUrl/").text
+
+        val video = Regex("""https://phs\d+\.krakencloud\.net/play/video/[^\"]+""")
+            .find(html)?.value ?: return
 
         callback.invoke(
-            newExtractorLink(name, name, video, INFER_TYPE) {
+            newExtractorLink(
+                name,
+                name,
+                video,
+                INFER_TYPE
+            ) {
                 this.referer = "$mainUrl/"
+                this.headers = mapOf("User-Agent" to USER_AGENT)
                 this.quality = Qualities.P1080.value
             }
         )
