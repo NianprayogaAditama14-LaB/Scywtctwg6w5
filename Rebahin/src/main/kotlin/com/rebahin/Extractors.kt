@@ -2,7 +2,6 @@ package com.rebahin
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
     override val name = "EmbedPyrox"
@@ -26,15 +25,14 @@ class EmbedPyroxExtractor : ExtractorApi() {
             data = mapOf("hash" to id)
         ).text
 
-        val json = JSONObject(response)
-        val securedLink = json.optString("securedLink")
+        val securedLink = org.json.JSONObject(response).optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-            callback(
+            callback.invoke(
                 newExtractorLink(
+                    source = name,
                     name = name,
-                    url = securedLink,
-                    source = mainUrl
+                    url = securedLink
                 )
             )
         }
@@ -52,34 +50,40 @@ class ImaxStreamsExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val html = app.get(url, referer = mainUrl).text
+        val html = app.get(
+            url,
+            headers = mapOf("User-Agent" to USER_AGENT),
+            referer = mainUrl
+        ).text
 
-        val evalScript = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
-            .find(html)
-            ?.value
+        val evalRegex = Regex("""eval\(function\(p,a,c,k,e.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
 
         var unpacked = html
-        if (evalScript != null) {
-            unpacked = JsUnpacker().unpack(evalScript) ?: html
+
+        evalRegex.findAll(html).forEach { match ->
+            val decoded = JsUnpacker().unpack(match.value)
+            if (decoded != null) {
+                unpacked += decoded
+            }
         }
 
-        val m3u8 = Regex("""https?://[^\s"'<>]+\.m3u8[^\s"'<>]*""")
-            .find(unpacked)
-            ?.value ?: return
+        val m3u8Regex = Regex("""https://[A-Za-z0-9.-]+\.acek-cdn\.com[^\s"'<>]+\.m3u8[^\s"'<>]*""")
 
-        callback(
+        val m3u8 = m3u8Regex.find(unpacked)?.value ?: return
+
+        callback.invoke(
             newExtractorLink(
                 source = name,
-                name = name,
+                name = "Acek CDN",
                 url = m3u8
             ) {
-                headers = mapOf(
-                    "Referer" to mainUrl,
-                    "Origin" to mainUrl,
-                    "User-Agent" to USER_AGENT
-                )
                 isM3u8 = true
                 quality = Qualities.Unknown.value
+                headers = mapOf(
+                    "Referer" to "https://imaxstreams.com/",
+                    "Origin" to "https://imaxstreams.com",
+                    "User-Agent" to USER_AGENT
+                )
             }
         )
     }
