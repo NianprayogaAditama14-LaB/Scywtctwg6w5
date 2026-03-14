@@ -39,6 +39,7 @@ class Nimegami : MainAPI() {
         "/type/tv" to "Anime",
         "/type/movie" to "Movie",
         "/type/ona" to "ONA",
+        "/type/live-action" to "Live Action"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -131,29 +132,24 @@ class Nimegami : MainAPI() {
         if (data.isBlank()) return false
 
         val decoded = try { base64Decode(data) } catch (_: Exception) { data }
-        val clean = decoded.replace("\\/", "/").removePrefix("\"").removeSuffix("\"")
-        val sources = tryParseJson<ArrayList<Sources>>(clean) ?: return false
 
-        val addedFormats = mutableSetOf<String>() // track format untuk hindari duplikat
+        val clean = decoded.replace("\\/", "/").removePrefix("\"").removeSuffix("\"")
+
+        val sources = tryParseJson<ArrayList<Sources>>(clean) ?: return false
 
         sources.forEach { source ->
             source.url?.forEach { url ->
                 val fixed = url.replace("\\/", "/")
-                if (fixed.contains("dlgan.space") && !source.format.isNullOrBlank() && !addedFormats.contains(source.format)) {
+                if (fixed.contains("dlgan.space")) {
                     val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
-                    val stream = Regex("""stream_url":"(https:[^"]+)""")
-                        .find(html)?.groupValues?.get(1)
-                        ?.replace("\\/", "/")
-                        ?.replace("\\u0026", "&")
-
+                    val stream = Regex("""stream_url":"(https:[^"]+)""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")?.replace("\\u0026", "&")
                     if (!stream.isNullOrBlank()) {
                         callback.invoke(
-                            newExtractorLink("Nimegami", "Nimegami ${source.format}", stream, ExtractorLinkType.VIDEO) {
+                            newExtractorLink("Nimegami", "Nimegami", stream, ExtractorLinkType.VIDEO) {
                                 this.quality = getQualityFromName(source.format)
                                 this.headers = mapOf("Referer" to "https://dlgan.space/")
                             }
                         )
-                        addedFormats.add(source.format) // tandai sudah dipakai
                     }
                 }
             }
