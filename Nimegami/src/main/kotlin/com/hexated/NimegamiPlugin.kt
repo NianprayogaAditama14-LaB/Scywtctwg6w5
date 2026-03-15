@@ -9,6 +9,5 @@ import android.content.Context
 class NimegamiPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(Nimegami())
-        registerExtractorAPI(Berkasdrive())
     }
 }

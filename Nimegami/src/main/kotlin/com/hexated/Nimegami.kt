@@ -58,14 +58,10 @@ class Nimegami : MainAPI() {
     private fun Element.toSearchResult(): AnimeSearchResponse? {
         val href = fixUrl(this.selectFirst("a")!!.attr("href"))
         val title = this.selectFirst("h2 a")?.text() ?: return null
-
-        // Ambil poster HD, fallback ke data-setbg jika img biasa kecil
         val posterUrl = (this.selectFirst("noscript img")?.attr("src")
             ?: this.selectFirst("img")?.attr("src")
             ?: this.selectFirst(".product__sidebar__view__item.set-bg")?.attr("data-setbg"))
-
         val episode = this.selectFirst("ul li:contains(Episode), div.eps-archive")?.ownText()?.filter { it.isDigit() }?.toIntOrNull()
-
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
             addSub(episode)
@@ -142,16 +138,31 @@ class Nimegami : MainAPI() {
         sources.forEach { source ->
             source.url?.forEach { url ->
                 val fixed = url.replace("\\/", "/")
-                if (fixed.contains("dlgan.space")) {
-                    val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
-                    val stream = Regex("""stream_url":"(https:[^"]+)""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")?.replace("\\u0026", "&")
-                    if (!stream.isNullOrBlank()) {
-                        callback.invoke(
-                            newExtractorLink("Nimegami", "Nimegami ${source.format}", stream, ExtractorLinkType.VIDEO) {
-                                this.quality = getQualityFromName(source.format)
-                                this.headers = mapOf("Referer" to "https://dlgan.space/")
-                            }
-                        )
+
+                when {
+                    fixed.contains("dlgan.space") -> {
+                        val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
+                        val stream = Regex("""stream_url":"(https:[^"]+)""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")?.replace("\\u0026", "&")
+                        if (!stream.isNullOrBlank()) {
+                            callback(
+                                newExtractorLink("Nimegami", "Nimegami ${source.format}", stream, ExtractorLinkType.VIDEO) {
+                                    this.quality = getQualityFromName(source.format)
+                                    this.headers = mapOf("Referer" to "https://dlgan.space/")
+                                }
+                            )
+                        }
+                    }
+                    fixed.contains("berkasdrive.com") -> {
+                        val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
+                        val mp4 = Regex("""https://[^"]+\.mp4""").findAll(html).map { it.value }.firstOrNull()
+                        if (!mp4.isNullOrBlank()) {
+                            callback(
+                                newExtractorLink("Nimegami", "Nimegami ${source.format}", mp4, ExtractorLinkType.VIDEO) {
+                                    this.quality = getQualityFromName(source.format)
+                                    this.headers = mapOf("Referer" to "https://nimegami.id")
+                                }
+                            )
+                        }
                     }
                 }
             }
