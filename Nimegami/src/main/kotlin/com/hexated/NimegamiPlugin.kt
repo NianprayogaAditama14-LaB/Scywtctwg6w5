@@ -13,6 +13,5 @@ class NimegamiPlugin : Plugin() {
         registerMainAPI(Nimegami())
         registerExtractorAPI(DlganExtractor())
         registerExtractorAPI(BerkasDriveExtractor())
-        registerExtractorAPI(MiteDriveExtractor())
     }
 }
