@@ -95,33 +95,41 @@ class MiteDriveExtractor : ExtractorApi() {
     ) {
         val slug = url.substringAfterLast("/")
         val token = base64Encode(base64Encode("""{"ip":"1.1.1.1"}"""))
-        val jsonData = mapOf(
-            "slug" to slug,
-            "csrf_token" to token
-        )
+
+        val jsonData = """
+            {
+                "slug":"$slug",
+                "csrf_token":"$token"
+            }
+        """.trimIndent().toByteArray()
 
         val response = app.post(
             "https://api.mitedrive.com/api/view/$slug",
-            data = jsonData,
+            requestBody = jsonData,
             headers = mapOf(
                 "Content-Type" to "application/json",
                 "User-Agent" to "Mozilla/5.0"
             )
         ).parsedSafe<Map<String, Any>>() ?: return
 
-        val videoUrl = (response["data"] as? Map<*, *>)?.get("original_url")?.toString() ?: return
-        val fixedUrl = videoUrl.replace("[", "%5B").replace("]", "%5D")
-        val quality = getQualityFromName(videoUrl)
+        val data = response["data"] as? Map<*, *> ?: return
+        val urls = data["sources"] as? List<*> ?: listOf(data["original_url"])
 
-        callback(
-            newExtractorLink(name, name, fixedUrl, ExtractorLinkType.VIDEO) {
-                this.quality = quality
-                this.headers = mapOf(
-                    "User-Agent" to "Mozilla/5.0",
-                    "Accept" to "*/*",
-                    "Connection" to "keep-alive"
-                )
-            }
-        )
+        urls.forEach { item ->
+            val videoUrl = (item as? String ?: (item as? Map<*, *>)?.get("file")?.toString()) ?: return@forEach
+            val qualityName = (item as? Map<*, *>)?.get("label")?.toString() ?: getQualityFromName(videoUrl)
+            val fixedUrl = videoUrl.replace("[", "%5B").replace("]", "%5D")
+
+            callback(
+                newExtractorLink(name, "$name ${qualityName ?: ""}", fixedUrl, ExtractorLinkType.VIDEO) {
+                    this.quality = getQualityFromName(qualityName)
+                    this.headers = mapOf(
+                        "User-Agent" to "Mozilla/5.0",
+                        "Accept" to "*/*",
+                        "Connection" to "keep-alive"
+                    )
+                }
+            )
+        }
     }
 }
