@@ -27,7 +27,7 @@ class DlganExtractor : ExtractorApi() {
 
             val quality = Regex("""(\d{3,4}p)""").find(stream)?.value
 
-            callback.invoke(
+            callback(
                 newExtractorLink(name, "$name ${quality ?: ""}", stream, ExtractorLinkType.VIDEO) {
                     this.referer = referer ?: mainUrl
                     this.quality = getQualityFromName(quality)
@@ -66,7 +66,7 @@ class BerkasDriveExtractor : ExtractorApi() {
         val videoUrl = json.getString("url").replace("\\/", "/")
         val quality = Regex("""(\d{3,4}p)""").find(videoUrl)?.value
 
-        callback.invoke(
+        callback(
             newExtractorLink(
                 name,
                 "$name ${quality ?: ""}",
