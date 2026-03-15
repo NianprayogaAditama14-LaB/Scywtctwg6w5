@@ -13,7 +13,7 @@ import org.jsoup.select.Elements
 
 class Nimegami : MainAPI() {
     override var mainUrl = "https://nimegami.id"
-    override var name = "Nimegami"
+    override var name = "Nimegami🍺"
     override val hasMainPage = true
     override var lang = "id"
     override val supportedTypes = setOf(TvType.Anime, TvType.AnimeMovie, TvType.OVA)
@@ -39,7 +39,6 @@ class Nimegami : MainAPI() {
         "/type/tv" to "Anime",
         "/type/movie" to "Movie",
         "/type/ona" to "ONA",
-        "/type/live-action" to "Live Action"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
