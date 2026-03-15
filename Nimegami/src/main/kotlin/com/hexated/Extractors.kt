@@ -47,7 +47,7 @@ class BerkasDriveExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val id = Regex("id=([a-zA-Z0-9]+)").find(url)?.groupValues?.get(1) ?: return
+        val id = Regex("id=([a-zA-Z0-9+/=]+)").find(url)?.groupValues?.get(1) ?: return
         val api = "$mainUrl/new/streaming.php?action=stream-worker&id=$id"
 
         val response = app.get(
@@ -84,8 +84,8 @@ class BerkasDriveExtractor : ExtractorApi() {
 
 class MiteDriveExtractor : ExtractorApi() {
     override val name = "MiteDrive"
-    override val mainUrl = "https://stor.halahgan.com"
-    override val requiresReferer = true
+    override val mainUrl = "https://mitedrive.com"
+    override val requiresReferer = false
 
     override suspend fun getUrl(
         url: String,
@@ -93,50 +93,42 @@ class MiteDriveExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        if (url.contains("stor.halahgan.com")) {
-            val quality = Regex("""(\d{3,4}p)""").find(url)?.value
+        val slug = url.substringAfterLast("/")
 
-            callback.invoke(
-                newExtractorLink(
-                    name,
-                    "$name ${quality ?: ""}",
-                    url,
-                    ExtractorLinkType.VIDEO
-                ) {
-                    this.referer = referer ?: "https://nimegami.id/"
-                    this.quality = getQualityFromName(quality)
-                    this.headers = mapOf(
-                        "Referer" to (referer ?: "https://nimegami.id/"),
-                        "User-Agent" to "Mozilla/5.0"
-                    )
-                }
+        val data = """{"ip":"1.1.1.1"}"""
+        val token = base64Encode(base64Encode(data))
+
+        val response = app.post(
+            "https://api.mitedrive.com/api/view/$slug",
+            data = """{"slug":"$slug","csrf_token":"$token"}""",
+            headers = mapOf(
+                "Content-Type" to "application/json",
+                "User-Agent" to "Mozilla/5.0"
             )
-            return
-        }
+        ).parsedSafe<Map<String, Any>>() ?: return
 
-        val html = app.get(url, headers = mapOf("Referer" to (referer ?: "https://nimegami.id/"))).text
+        val video = (response["data"] as? Map<*, *>)?.get("original_url")?.toString() ?: return
 
-        Regex("""https://stor\.halahgan\.com/dl/public/[^"']+\.mp4""")
-            .findAll(html)
-            .forEach {
-                val mp4 = it.value
-                val quality = Regex("""(\d{3,4}p)""").find(mp4)?.value
+        val fixedUrl = video
+            .replace("[", "%5B")
+            .replace("]", "%5D")
 
-                callback.invoke(
-                    newExtractorLink(
-                        name,
-                        "$name ${quality ?: ""}",
-                        mp4,
-                        ExtractorLinkType.VIDEO
-                    ) {
-                        this.referer = referer ?: "https://nimegami.id/"
-                        this.quality = getQualityFromName(quality)
-                        this.headers = mapOf(
-                            "Referer" to (referer ?: "https://nimegami.id/"),
-                            "User-Agent" to "Mozilla/5.0"
-                        )
-                    }
+        val quality = getQualityFromName(video)
+
+        callback.invoke(
+            newExtractorLink(
+                name,
+                name,
+                fixedUrl,
+                ExtractorLinkType.VIDEO
+            ) {
+                this.quality = quality
+                this.headers = mapOf(
+                    "User-Agent" to "Mozilla/5.0",
+                    "Accept" to "*/*",
+                    "Connection" to "keep-alive"
                 )
             }
+        )
     }
 }
