@@ -2,6 +2,7 @@ package com.hexated
 
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.SubtitleFile
 import org.jsoup.nodes.Document
 
 open class Berkasdrive : ExtractorApi() {
