@@ -96,7 +96,7 @@ class MiteDriveExtractor : ExtractorApi() {
         val slug = url.substringAfterLast("/")
 
         val data = """{"ip":"1.1.1.1"}"""
-        val token = base64Encode(base64Encode(data)) // tetap String
+        val token = base64Encode(base64Encode(data))
 
         val response = app.post(
             "https://api.mitedrive.com/api/view/$slug",
@@ -111,13 +111,17 @@ class MiteDriveExtractor : ExtractorApi() {
         ).parsedSafe<Map<String, Any>>() ?: return
 
         val video = (response["data"] as? Map<*, *>)?.get("original_url")?.toString() ?: return
-        val fixedUrl = video.replace("[", "%5B").replace("]", "%5D")
+
+        val fixedUrl = video
+            .replace("[", "%5B")
+            .replace("]", "%5D")
+
         val quality = getQualityFromName(video)
 
         callback.invoke(
             newExtractorLink(
                 name,
-                name,
+                "$name ${quality ?: ""}",
                 fixedUrl,
                 ExtractorLinkType.VIDEO
             ) {
