@@ -96,14 +96,16 @@ class MiteDriveExtractor : ExtractorApi() {
         val slug = url.substringAfterLast("/")
         val token = base64Encode(base64Encode("""{"ip":"1.1.1.1"}"""))
 
-        // Kirim data JSON sebagai ByteArray langsung
-        val jsonData = """{"slug":"$slug","csrf_token":"$token"}""".toByteArray()
+        // Gunakan Map, sesuai signature app.post di CloudStream
+        val jsonData = mapOf(
+            "slug" to slug,
+            "csrf_token" to token
+        )
 
         val response = app.post(
             "https://api.mitedrive.com/api/view/$slug",
-            data = jsonData, // <- pastikan ini ByteArray
+            data = jsonData,
             headers = mapOf(
-                "Content-Type" to "application/json",
                 "User-Agent" to "Mozilla/5.0",
                 "Accept" to "*/*",
                 "Connection" to "keep-alive"
