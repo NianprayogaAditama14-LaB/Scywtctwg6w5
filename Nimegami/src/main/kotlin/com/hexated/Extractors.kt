@@ -96,11 +96,11 @@ class MiteDriveExtractor : ExtractorApi() {
         val slug = url.substringAfterLast("/")
 
         val data = """{"ip":"1.1.1.1"}"""
-        val token = base64Encode(base64Encode(data))
+        val token = base64Encode(base64Encode(data.toByteArray())).decodeToString()
 
         val response = app.post(
             "https://api.mitedrive.com/api/view/$slug",
-            data = """{"slug":"$slug","csrf_token":"$token"}""",
+            data = """{"slug":"$slug","csrf_token":"$token"}""".toByteArray(),
             headers = mapOf(
                 "Content-Type" to "application/json",
                 "User-Agent" to "Mozilla/5.0"
