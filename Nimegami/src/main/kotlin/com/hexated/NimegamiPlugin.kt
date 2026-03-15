@@ -1,4 +1,5 @@
 
+
 package com.hexated
 
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
@@ -11,6 +12,7 @@ class NimegamiPlugin : Plugin() {
     
         registerMainAPI(Nimegami())
         registerExtractorAPI(DlganExtractor())
-        registerExtractorAPI(BerkasdriveExtractor())
+        registerExtractorAPI(BerkasDriveExtractor())
+        registerExtractorAPI(MiteDriveExtractor())
     }
 }
