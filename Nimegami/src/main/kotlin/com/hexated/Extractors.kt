@@ -1,3 +1,9 @@
+package com.hexated
+
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.utils.*
+import org.jsoup.nodes.Document
+
 open class Berkasdrive : ExtractorApi() {
     override val name = "Berkasdrive"
     override val mainUrl = "https://dl.berkasdrive.com"
@@ -9,7 +15,7 @@ open class Berkasdrive : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-        val res = app.get(url, referer = referer).document
+        val res: Document = app.get(url, referer = referer).document
         val video = res.select("video#player source").attr("src")
 
         callback.invoke(
@@ -22,7 +28,5 @@ open class Berkasdrive : ExtractorApi() {
                 this.referer = "$mainUrl/"
             }
         )
-
     }
-
 }
