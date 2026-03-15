@@ -11,7 +11,7 @@ open class Berkasdrive : ExtractorApi() {
 
     override suspend fun getUrl(
         url: String,
-        referer: String?,
+        referer: String? = null,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
