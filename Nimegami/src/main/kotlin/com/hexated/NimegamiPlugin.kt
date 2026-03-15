@@ -8,6 +8,9 @@ import android.content.Context
 @CloudstreamPlugin
 class NimegamiPlugin : Plugin() {
     override fun load(context: Context) {
+    
         registerMainAPI(Nimegami())
+        registerExtractorAPI(DlganExtractor())
+        registerExtractorAPI(BerkasdriveExtractor())
     }
 }

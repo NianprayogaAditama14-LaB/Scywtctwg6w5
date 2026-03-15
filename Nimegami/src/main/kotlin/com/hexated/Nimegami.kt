@@ -58,10 +58,9 @@ class Nimegami : MainAPI() {
     private fun Element.toSearchResult(): AnimeSearchResponse? {
         val href = fixUrl(this.selectFirst("a")!!.attr("href"))
         val title = this.selectFirst("h2 a")?.text() ?: return null
-        val posterUrl = (this.selectFirst("noscript img")?.attr("src")
-            ?: this.selectFirst("img")?.attr("src")
-            ?: this.selectFirst(".product__sidebar__view__item.set-bg")?.attr("data-setbg"))
+        val posterUrl = (this.selectFirst("noscript img") ?: this.selectFirst("img"))?.attr("src")
         val episode = this.selectFirst("ul li:contains(Episode), div.eps-archive")?.ownText()?.filter { it.isDigit() }?.toIntOrNull()
+
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
             addSub(episode)
@@ -124,50 +123,34 @@ class Nimegami : MainAPI() {
         }
     }
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        if (data.isBlank()) return false
-        val decoded = try { base64Decode(data) } catch (_: Exception) { data }
-        val clean = decoded.replace("\\/", "/").removePrefix("\"").removeSuffix("\"")
-        val sources = tryParseJson<ArrayList<Sources>>(clean) ?: return false
-
-        sources.forEach { source ->
-            source.url?.forEach { url ->
-                val fixed = url.replace("\\/", "/")
-
-                when {
-                    fixed.contains("dlgan.space") -> {
-                        val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
-                        val stream = Regex("""stream_url":"(https:[^"]+)""").find(html)?.groupValues?.get(1)?.replace("\\/", "/")?.replace("\\u0026", "&")
-                        if (!stream.isNullOrBlank()) {
-                            callback(
-                                newExtractorLink("Nimegami", "Nimegami ${source.format}", stream, ExtractorLinkType.VIDEO) {
-                                    this.quality = getQualityFromName(source.format)
-                                    this.headers = mapOf("Referer" to "https://dlgan.space/")
-                                }
-                            )
-                        }
-                    }
-                    fixed.contains("berkasdrive.com") -> {
-                        val html = app.get(fixed, headers = mapOf("Referer" to mainUrl)).text
-                        val mp4 = Regex("""https://[^"]+\.mp4""").findAll(html).map { it.value }.firstOrNull()
-                        if (!mp4.isNullOrBlank()) {
-                            callback(
-                                newExtractorLink("Nimegami", "Nimegami ${source.format}", mp4, ExtractorLinkType.VIDEO) {
-                                    this.quality = getQualityFromName(source.format)
-                                    this.headers = mapOf("Referer" to "https://nimegami.id")
-                                }
-                            )
-                        }
-                    }
-                }
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+        tryParseJson<ArrayList<Sources>>(base64Decode(data))?.map { sources ->
+            sources.url?.amap { url ->
+                loadFixedExtractor(url, sources.format, "$mainUrl/", subtitleCallback, callback)
             }
         }
         return true
+    }
+
+    private suspend fun loadFixedExtractor(
+        url: String,
+        quality: String?,
+        referer: String? = null,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+        loadExtractor(url, referer, subtitleCallback) { link ->
+            runBlocking {
+                callback.invoke(
+                    newExtractorLink(link.name, link.name, link.url, link.type) {
+                        this.referer = link.referer
+                        this.quality = getQualityFromName(quality)
+                        this.headers = link.headers
+                        this.extractorData = link.extractorData
+                    }
+                )
+            }
+        }
     }
 
     private fun Elements.getContent(css: String): Elements = this.select("tr:contains($css) td:last-child")
