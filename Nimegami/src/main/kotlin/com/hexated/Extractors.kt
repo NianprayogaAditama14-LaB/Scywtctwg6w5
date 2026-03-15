@@ -3,8 +3,6 @@ package com.hexated
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.utils.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody
 import org.json.JSONObject
 
 class DlganExtractor : ExtractorApi() {
@@ -98,13 +96,14 @@ class MiteDriveExtractor : ExtractorApi() {
         val slug = url.substringAfterLast("/")
         val token = base64Encode(base64Encode("""{"ip":"1.1.1.1"}"""))
 
-        val jsonString = """{"slug":"$slug","csrf_token":"$token"}"""
-        val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), jsonString.toByteArray())
+        // Kirim data JSON sebagai ByteArray langsung
+        val jsonData = """{"slug":"$slug","csrf_token":"$token"}""".toByteArray()
 
         val response = app.post(
             "https://api.mitedrive.com/api/view/$slug",
-            requestBody = requestBody,
+            data = jsonData, // <- pastikan ini ByteArray
             headers = mapOf(
+                "Content-Type" to "application/json",
                 "User-Agent" to "Mozilla/5.0",
                 "Accept" to "*/*",
                 "Connection" to "keep-alive"
