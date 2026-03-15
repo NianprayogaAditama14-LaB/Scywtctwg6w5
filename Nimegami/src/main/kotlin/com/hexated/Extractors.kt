@@ -111,9 +111,7 @@ class MiteDriveExtractor : ExtractorApi() {
 
         val video = (response["data"] as? Map<*, *>)?.get("original_url")?.toString() ?: return
 
-        val fixedUrl = video
-            .replace("[", "%5B")
-            .replace("]", "%5D")
+        val fixedUrl = video.replace("[", "%5B").replace("]", "%5D")
 
         val quality = getQualityFromName(video)
 
