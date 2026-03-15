@@ -3,6 +3,8 @@ package com.hexated
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.utils.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody
 import org.json.JSONObject
 
 class DlganExtractor : ExtractorApi() {
@@ -96,15 +98,13 @@ class MiteDriveExtractor : ExtractorApi() {
         val slug = url.substringAfterLast("/")
         val token = base64Encode(base64Encode("""{"ip":"1.1.1.1"}"""))
 
-        // Gunakan Map, sesuai signature app.post di CloudStream
-        val jsonData = mapOf(
-            "slug" to slug,
-            "csrf_token" to token
-        )
+        // Buat RequestBody sesuai signature CloudStream terbaru
+        val jsonString = """{"slug":"$slug","csrf_token":"$token"}"""
+        val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), jsonString.toByteArray())
 
         val response = app.post(
             "https://api.mitedrive.com/api/view/$slug",
-            data = jsonData,
+            requestBody = requestBody,
             headers = mapOf(
                 "User-Agent" to "Mozilla/5.0",
                 "Accept" to "*/*",
@@ -117,12 +117,12 @@ class MiteDriveExtractor : ExtractorApi() {
 
         urls.forEach { item ->
             val videoUrl = (item as? String ?: (item as? Map<*, *>)?.get("file")?.toString()) ?: return@forEach
-            val qualityName = (item as? Map<*, *>)?.get("label")?.toString() ?: getQualityFromName(videoUrl)
+            val qualityName = (item as? Map<*, *>)?.get("label")?.toString() ?: videoUrl
             val fixedUrl = videoUrl.replace("[", "%5B").replace("]", "%5D")
 
             callback(
                 newExtractorLink(name, "$name ${qualityName ?: ""}", fixedUrl, ExtractorLinkType.VIDEO) {
-                    this.quality = getQualityFromName(qualityName)
+                    this.quality = qualityName
                     this.headers = mapOf(
                         "User-Agent" to "Mozilla/5.0",
                         "Accept" to "*/*",
