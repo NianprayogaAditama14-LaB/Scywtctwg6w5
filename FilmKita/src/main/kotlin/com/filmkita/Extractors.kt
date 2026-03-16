@@ -67,3 +67,46 @@ class LayarWibu : ExtractorApi() {
         )
     }
 }
+
+class Minochinos : ExtractorApi() {
+
+    override val name = "Minochinos"
+    override val mainUrl = "https://minochinos.com"
+    override val requiresReferer = true
+
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+
+        val res = app.get(url, referer = mainUrl)
+        val html = res.text
+
+        val packed = Regex("""eval\(function\(p,a,c,k,e,d\).*?\)\)""")
+            .find(html)?.value ?: return
+
+        val unpacked = JsUnpacker(packed).unpack()
+
+        val hls = Regex("""hls2":"(https:[^"]+)""")
+            .find(unpacked)
+            ?.groupValues?.get(1)
+            ?.replace("\\/", "/")
+            ?: return
+
+        callback(
+            newExtractorLink(
+                name,
+                name,
+                hls,
+                ExtractorLinkType.M3U8
+            ) {
+                quality = Qualities.Unknown.value
+                headers = mapOf(
+                    "Referer" to "$mainUrl/"
+                )
+            }
+        )
+    }
+}
