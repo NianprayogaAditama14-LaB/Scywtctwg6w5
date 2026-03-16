@@ -4,9 +4,6 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addScore
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
-import com.lagradost.cloudstream3.MainAPI
-import com.lagradost.cloudstream3.SearchResponse
-import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.mainPageOf
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
@@ -19,8 +16,7 @@ class FilmKita : MainAPI() {
     override val hasMainPage = true
     override var lang = "id"
 
-    override val supportedTypes =
-        setOf(TvType.Movie, TvType.TvSeries, TvType.Anime, TvType.AsianDrama)
+    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries, TvType.Anime, TvType.AsianDrama)
 
     override val mainPage = mainPageOf(
         "year/2025/page/%d/" to "Terbaru",
@@ -52,8 +48,7 @@ class FilmKita : MainAPI() {
         val href = fixUrl(selectFirst("a")!!.attr("href"))
         val ratingText = selectFirst("div.gmr-rating-item")?.ownText()?.trim()
         val posterUrl = fixUrlNull(selectFirst("a > img")?.getImageAttr()).fixImageQuality()
-        val quality = select("div.gmr-qual, div.gmr-quality-item > a")
-            .text().trim().replace("-", "")
+        val quality = select("div.gmr-qual, div.gmr-quality-item > a").text().trim().replace("-", "")
 
         return if (quality.isEmpty()) {
             newAnimeSearchResponse(title, href, TvType.TvSeries) {
@@ -70,34 +65,20 @@ class FilmKita : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document =
-            app.get("$mainUrl/?s=$query&post_type[]=post&post_type[]=tv").document
+        val document = app.get("$mainUrl/?s=$query&post_type[]=post&post_type[]=tv").document
         return document.select("article.item").mapNotNull { it.toSearchResult() }
     }
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
-
         val title = document.selectFirst("h1.entry-title")?.text()?.trim().orEmpty()
-        val poster =
-            fixUrlNull(document.selectFirst("figure.pull-left img")?.getImageAttr())
-                ?.fixImageQuality()
-
+        val poster = fixUrlNull(document.selectFirst("figure.pull-left img")?.getImageAttr())?.fixImageQuality()
         val tags = document.select("strong:contains(Genre) ~ a").eachText()
-        val year = document.select("strong:contains(Year:) ~ a")
-            .text().toIntOrNull()
-
-        val description =
-            document.selectFirst("div[itemprop=description] > p")?.text()?.trim()
-
-        val rating =
-            document.selectFirst("span[itemprop=ratingValue]")?.text()?.trim()
-
-        val actors =
-            document.select("span[itemprop=actors] a").map { it.text() }
-
-        val trailer =
-            document.selectFirst("a.gmr-trailer-popup")?.attr("href")
+        val year = document.select("strong:contains(Year:) ~ a").text().toIntOrNull()
+        val description = document.selectFirst("div[itemprop=description] > p")?.text()?.trim()
+        val rating = document.selectFirst("span[itemprop=ratingValue]")?.text()?.trim()
+        val actors = document.select("span[itemprop=actors] a").map { it.text() }
+        val trailer = document.selectFirst("a.gmr-trailer-popup")?.attr("href")
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
@@ -116,18 +97,34 @@ class FilmKita : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-
         val document = app.get(data).document
+        val servers = document.select("ul.muvipro-player-tabs li a")
+            .mapNotNull { it.attr("href").takeIf { href -> href.isNotBlank() } }
+            .distinct()
 
-        document.select("iframe").forEach { iframe ->
-            val link = iframe.getIframeAttr()?.let { httpsify(it) } ?: return@forEach
-            loadExtractor(link, data, subtitleCallback, callback)
-        }
+        for (serverUrl in servers) {
+            val urlToLoad = if (serverUrl.startsWith("/")) "${mainUrl.trimEnd('/')}$serverUrl" else serverUrl
+            val serverDoc = app.get(urlToLoad).document
 
-        document.select("ul.gmr-download-list li a").forEach { linkEl ->
-            val downloadUrl = linkEl.attr("href")
-            if (downloadUrl.isNotBlank()) {
-                loadExtractor(downloadUrl, data, subtitleCallback, callback)
+            serverDoc.select("iframe, video source").forEach { iframe ->
+                val src = iframe.attr("data-litespeed-src")
+                    .takeIf { it.isNotEmpty() }
+                    ?: iframe.attr("src").takeIf { it.isNotEmpty() }
+                    ?: return@forEach
+
+                val decodedSrc = try {
+                    val base64Part = src.substringAfterLast("/player2/").substringBefore("?")
+                    String(android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT))
+                } catch (_: Exception) {
+                    src
+                }
+
+                loadExtractor(httpsify(decodedSrc), data, subtitleCallback, callback)
+            }
+
+            serverDoc.select("ul.gmr-download-list li a, a.download-link").forEach { linkEl ->
+                val downloadUrl = linkEl.attr("href").takeIf { it.isNotBlank() } ?: return@forEach
+                loadExtractor(httpsify(downloadUrl), data, subtitleCallback, callback)
             }
         }
 
@@ -143,19 +140,13 @@ class FilmKita : MainAPI() {
         }
     }
 
-    private fun Element?.getIframeAttr(): String? {
-        return this?.attr("data-litespeed-src")
-            ?.takeIf { it.isNotEmpty() }
-            ?: this?.attr("src")
-    }
-
     private fun String?.fixImageQuality(): String? {
         if (this == null) return null
         val regex = Regex("(-\\d*x\\d*)").find(this)?.groupValues?.get(0) ?: return this
         return replace(regex, "")
     }
 
-    private fun getBaseUrl(url: String): String {
-        return URI(url).let { "${it.scheme}://${it.host}" }
+    private fun httpsify(url: String): String {
+        return if (url.startsWith("http")) url else url.replaceFirst("http:", "https:")
     }
 }
