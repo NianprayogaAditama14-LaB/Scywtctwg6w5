@@ -91,18 +91,13 @@ class Minochinos : ExtractorApi() {
 
         val html = res.text
 
-        val packed = Regex("""eval\(function\(p,a,c,k,e,d\).*?\)\)""")
-            .find(html)?.value ?: return
-
-        val unpacked = JsUnpacker(packed).unpack() ?: return
-
-        val hls4 = Regex("""hls4":"([^"]+)""").find(unpacked)?.groupValues?.get(1)
-        val hls3 = Regex("""hls3":"([^"]+)""").find(unpacked)?.groupValues?.get(1)
-        val hls2 = Regex("""hls2":"([^"]+)""").find(unpacked)?.groupValues?.get(1)
+        val hls4 = Regex("""hls4":"([^"]+)""").find(html)?.groupValues?.get(1)
+        val hls3 = Regex("""hls3":"([^"]+)""").find(html)?.groupValues?.get(1)
+        val hls2 = Regex("""hls2":"([^"]+)""").find(html)?.groupValues?.get(1)
 
         val video = hls4 ?: hls3 ?: hls2 ?: return
 
-        val finalUrl =
+        val finalLink =
             if (video.startsWith("/"))
                 "$mainUrl$video"
             else
@@ -112,7 +107,7 @@ class Minochinos : ExtractorApi() {
             newExtractorLink(
                 name,
                 name,
-                finalUrl,
+                finalLink,
                 ExtractorLinkType.M3U8
             ) {
                 headers = mapOf(
