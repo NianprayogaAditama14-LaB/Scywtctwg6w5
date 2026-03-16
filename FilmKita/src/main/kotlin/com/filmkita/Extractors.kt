@@ -87,27 +87,25 @@ class Minochinos : ExtractorApi() {
         val packed = Regex("""eval\(function\(p,a,c,k,e,d\).*?\)\)""")
             .find(html)?.value ?: return
 
-        val unpacked = JsUnpacker(packed).unpack()
+        val unpacked = JsUnpacker(packed).unpack() ?: return
 
-        Regex("""hls2":"(https:[^"]+)""")
+        val hls = Regex("""hls2":"(https:[^"]+)""")
             .find(unpacked)
             ?.groupValues?.get(1)
-            ?.replace("\\/", "/")
-            ?.let { hls ->
+            ?.replace("\\/", "/") ?: return
 
-                callback(
-                    newExtractorLink(
-                        name,
-                        name,
-                        hls,
-                        ExtractorLinkType.M3U8
-                    ) {
-                        quality = Qualities.Unknown.value
-                        headers = mapOf(
-                            "Referer" to "$mainUrl/"
-                        )
-                    }
+        callback(
+            newExtractorLink(
+                name,
+                name,
+                hls,
+                ExtractorLinkType.M3U8
+            ) {
+                quality = Qualities.Unknown.value
+                headers = mapOf(
+                    "Referer" to "$mainUrl/"
                 )
             }
+        )
     }
 }
