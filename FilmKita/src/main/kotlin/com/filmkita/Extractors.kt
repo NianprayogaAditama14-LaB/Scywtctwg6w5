@@ -16,10 +16,7 @@ class HlsTerea : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
-        val encoded = url.substringAfter("/player2/")
-            .substringBefore("?")
-
+        val encoded = url.substringAfter("/player2/").substringBefore("?")
         val decoded = try {
             String(Base64.decode(encoded, Base64.DEFAULT))
         } catch (_: Exception) {
@@ -33,7 +30,39 @@ class HlsTerea : ExtractorApi() {
                 decoded,
                 ExtractorLinkType.M3U8
             ) {
-                this.quality = Qualities.P1080.value
+                quality = Qualities.Unknown.value
+            }
+        )
+    }
+}
+
+class LayarWibu : ExtractorApi() {
+
+    override val name = "LayarWibu"
+    override val mainUrl = "https://hls-bekop.layarwibu.com"
+    override val requiresReferer = false
+
+    override suspend fun getUrl(
+        url: String,
+        referer: String?,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ) {
+        val encoded = url.substringAfter("/player2/").substringBefore("?")
+        val decoded = try {
+            String(Base64.decode(encoded, Base64.DEFAULT))
+        } catch (_: Exception) {
+            return
+        }
+
+        callback(
+            newExtractorLink(
+                name,
+                name,
+                decoded,
+                ExtractorLinkType.M3U8
+            ) {
+                quality = Qualities.Unknown.value
             }
         )
     }
