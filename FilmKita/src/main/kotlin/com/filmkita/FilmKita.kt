@@ -47,7 +47,7 @@ class FilmKita : MainAPI() {
         val title = selectFirst("h2.entry-title > a")?.text()?.trim() ?: return null
         val href = fixUrl(selectFirst("a")!!.attr("href"))
         val ratingText = selectFirst("div.gmr-rating-item")?.ownText()?.trim()
-        val posterUrl = fixUrlNull(selectFirst("a > img")?.getImageAttr()).fixImageQuality()
+        val posterUrl = fixUrlNull(selectFirst("a > img")?.getImageAttr())?.fixImageQuality()
         val quality = select("div.gmr-qual, div.gmr-quality-item > a").text().trim().replace("-", "")
 
         return if (quality.isEmpty()) {
@@ -98,33 +98,26 @@ class FilmKita : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
+
+        // loop semua server
         val servers = document.select("ul.muvipro-player-tabs li a")
-            .mapNotNull { it.attr("href").takeIf { href -> href.isNotBlank() } }
+            .mapNotNull { it.attr("href").takeIf { it.isNotBlank() } }
             .distinct()
 
         for (serverUrl in servers) {
             val urlToLoad = if (serverUrl.startsWith("/")) "${mainUrl.trimEnd('/')}$serverUrl" else serverUrl
             val serverDoc = app.get(urlToLoad).document
 
-            serverDoc.select("iframe, video source").forEach { iframe ->
-                val src = iframe.attr("data-litespeed-src")
-                    .takeIf { it.isNotEmpty() }
-                    ?: iframe.attr("src").takeIf { it.isNotEmpty() }
-                    ?: return@forEach
-
-                val decodedSrc = try {
-                    val base64Part = src.substringAfterLast("/player2/").substringBefore("?")
-                    String(android.util.Base64.decode(base64Part, android.util.Base64.DEFAULT))
-                } catch (_: Exception) {
-                    src
-                }
-
-                loadExtractor(httpsify(decodedSrc), data, subtitleCallback, callback)
+            // ambil semua iframe & video source
+            serverDoc.select("iframe, video source").forEach { element ->
+                val src = element.attr("data-litespeed-src").takeIf { it.isNotEmpty() } ?: element.attr("src") ?: return@forEach
+                loadExtractorAPI(httpsify(src), data, subtitleCallback, callback)
             }
 
+            // ambil link download
             serverDoc.select("ul.gmr-download-list li a, a.download-link").forEach { linkEl ->
                 val downloadUrl = linkEl.attr("href").takeIf { it.isNotBlank() } ?: return@forEach
-                loadExtractor(httpsify(downloadUrl), data, subtitleCallback, callback)
+                loadExtractorAPI(httpsify(downloadUrl), data, subtitleCallback, callback)
             }
         }
 
@@ -148,5 +141,9 @@ class FilmKita : MainAPI() {
 
     private fun httpsify(url: String): String {
         return if (url.startsWith("http")) url else url.replaceFirst("http:", "https:")
+    }
+
+    private fun getBaseUrl(url: String): String {
+        return URI(url).let { "${it.scheme}://${it.host}" }
     }
 }
