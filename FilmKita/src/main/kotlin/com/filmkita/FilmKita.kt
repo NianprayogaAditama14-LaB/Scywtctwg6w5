@@ -71,6 +71,7 @@ class FilmKita : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
+
         val title = document.selectFirst("h1.entry-title")?.text()?.trim().orEmpty()
         val poster = fixUrlNull(document.selectFirst("figure.pull-left img")?.getImageAttr())?.fixImageQuality()
         val tags = document.select("strong:contains(Genre) ~ a").eachText()
@@ -79,6 +80,29 @@ class FilmKita : MainAPI() {
         val rating = document.selectFirst("span[itemprop=ratingValue]")?.text()?.trim()
         val actors = document.select("span[itemprop=actors] a").map { it.text() }
         val trailer = document.selectFirst("a.gmr-trailer-popup")?.attr("href")
+
+        val episodeLinks = document.select("div.gmr-listseries a")
+
+        if (episodeLinks.isNotEmpty() || url.contains("/eps/")) {
+
+            val episodes = episodeLinks.mapNotNull { ep ->
+                val epTitle = ep.text().trim()
+                val epUrl = fixUrl(ep.attr("href"))
+                newEpisode(epUrl) {
+                    this.name = epTitle
+                }
+            }
+
+            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                this.posterUrl = poster
+                this.year = year
+                this.plot = description
+                this.tags = tags
+                addScore(rating)
+                addActors(actors)
+                addTrailer(trailer, referer = mainUrl, addRaw = true)
+            }
+        }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
@@ -108,7 +132,8 @@ class FilmKita : MainAPI() {
             val serverDoc = app.get(urlToLoad).document
 
             serverDoc.select("iframe, video source").forEach { element ->
-                val src = element.attr("data-litespeed-src").takeIf { it.isNotEmpty() } ?: element.attr("src") ?: return@forEach
+                val src = element.attr("data-litespeed-src").takeIf { it.isNotEmpty() }
+                    ?: element.attr("src") ?: return@forEach
                 loadExtractor(httpsify(src), data, subtitleCallback, callback)
             }
 
