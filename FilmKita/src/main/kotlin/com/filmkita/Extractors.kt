@@ -81,7 +81,14 @@ class Minochinos : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val res = app.get(url, referer = mainUrl)
+        val res = app.get(
+            url,
+            headers = mapOf(
+                "Referer" to url,
+                "User-Agent" to USER_AGENT
+            )
+        )
+
         val html = res.text
 
         val packed = Regex("""eval\(function\(p,a,c,k,e,d\).*?\)\)""")
@@ -93,12 +100,7 @@ class Minochinos : ExtractorApi() {
         val hls3 = Regex("""hls3":"([^"]+)""").find(unpacked)?.groupValues?.get(1)
         val hls2 = Regex("""hls2":"([^"]+)""").find(unpacked)?.groupValues?.get(1)
 
-        val video = when {
-            !hls4.isNullOrBlank() -> hls4
-            !hls3.isNullOrBlank() -> hls3
-            !hls2.isNullOrBlank() -> hls2
-            else -> return
-        }
+        val video = hls4 ?: hls3 ?: hls2 ?: return
 
         val finalUrl =
             if (video.startsWith("/"))
@@ -113,10 +115,10 @@ class Minochinos : ExtractorApi() {
                 finalUrl,
                 ExtractorLinkType.M3U8
             ) {
-                quality = Qualities.Unknown.value
                 headers = mapOf(
                     "Referer" to url
                 )
+                quality = Qualities.Unknown.value
             }
         )
     }
