@@ -99,7 +99,6 @@ class FilmKita : MainAPI() {
     ): Boolean {
         val document = app.get(data).document
 
-        // loop semua server
         val servers = document.select("ul.muvipro-player-tabs li a")
             .mapNotNull { it.attr("href").takeIf { it.isNotBlank() } }
             .distinct()
@@ -108,16 +107,14 @@ class FilmKita : MainAPI() {
             val urlToLoad = if (serverUrl.startsWith("/")) "${mainUrl.trimEnd('/')}$serverUrl" else serverUrl
             val serverDoc = app.get(urlToLoad).document
 
-            // ambil semua iframe & video source
             serverDoc.select("iframe, video source").forEach { element ->
                 val src = element.attr("data-litespeed-src").takeIf { it.isNotEmpty() } ?: element.attr("src") ?: return@forEach
-                loadExtractorAPI(httpsify(src), data, subtitleCallback, callback)
+                loadExtractor(httpsify(src), data, subtitleCallback, callback)
             }
 
-            // ambil link download
             serverDoc.select("ul.gmr-download-list li a, a.download-link").forEach { linkEl ->
                 val downloadUrl = linkEl.attr("href").takeIf { it.isNotBlank() } ?: return@forEach
-                loadExtractorAPI(httpsify(downloadUrl), data, subtitleCallback, callback)
+                loadExtractor(httpsify(downloadUrl), data, subtitleCallback, callback)
             }
         }
 
