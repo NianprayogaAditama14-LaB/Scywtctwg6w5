@@ -22,28 +22,57 @@ class DramaIdProvider : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (request.data.isEmpty()) "$mainUrl/page/$page/" else "$mainUrl${request.data}page/$page/"
-        val doc = app.get(url).document
-        val home = doc.select("h3.title_post").mapNotNull {
-            val anchor = it.selectFirst("a") ?: return@mapNotNull null
-            val href = fixUrl(anchor.attr("href"))
-            val title = anchor.text().trim()
-            val poster = it.parent()?.selectFirst("img")?.attr("src")
-            newTvSeriesSearchResponse(title, href) { this.posterUrl = poster }
+        val url = if (request.data.isEmpty()) {
+            "$mainUrl/page/$page/"
+        } else {
+            "$mainUrl${request.data}page/$page/"
         }
-        return newHomePageResponse(HomePageList(request.name, home), hasNext = doc.selectFirst("link[rel=next]") != null)
+
+        val doc = app.get(url).document
+
+        val home = doc.select("h3.title_post").mapNotNull {
+            val a = it.selectFirst("a") ?: return@mapNotNull null
+            val title = a.text().trim()
+            val href = fixUrl(a.attr("href"))
+
+            val poster = it.parent()?.selectFirst("img")?.attr("data-src")
+                ?: it.parent()?.selectFirst("img")?.attr("src")
+
+            newTvSeriesSearchResponse(title, href) {
+                this.posterUrl = poster
+            }
+        }
+
+        return newHomePageResponse(
+            HomePageList(request.name, home),
+            hasNext = doc.selectFirst("link[rel=next]") != null
+        )
     }
 
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
+
         val title = doc.selectFirst("h1")?.text()?.trim() ?: "No Title"
-        val poster = doc.selectFirst("img")?.attr("src")
+
+        val poster = doc.selectFirst(".thumb img")?.attr("data-src")
+            ?: doc.selectFirst(".thumb img")?.attr("src")
+
+        val plot = doc.selectFirst(".entry-content p")
+            ?.text()?.trim()
+
         val episodes = doc.select(".daftar-episode a").mapIndexed { index, el ->
             val epUrl = fixUrl(el.attr("href"))
-            val epName = el.selectFirst(".title_episode")?.text()?.trim() ?: "Episode ${index + 1}"
-            newEpisode(epUrl) { this.name = epName; this.episode = index + 1 }
+
+            newEpisode(epUrl) {
+                this.name = "Episode ${index + 1}"
+                this.episode = index + 1
+            }
         }
-        return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) { this.posterUrl = poster }
+
+        return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
+            this.posterUrl = poster
+            this.plot = plot
+        }
     }
 
     override suspend fun loadLinks(
@@ -52,15 +81,42 @@ class DramaIdProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+
         val doc = app.get(data).document
-        val encodedList = doc.select(".streaming-box [data]").mapNotNull { it.attr("data").takeIf { d -> d.isNotBlank() } }
-        encodedList.forEach { base64 ->
+
+        doc.select(".streaming-box").forEach {
+            val base64 = it.attr("data")
+            if (base64.isNotBlank()) {
+                try {
+                    val decoded = String(Base64.decode(base64, Base64.DEFAULT))
+                    val iframe = Regex("""src=["'](.*?)["']""")
+                        .find(decoded)?.groupValues?.get(1)
+
+                    if (iframe != null) {
+                        loadExtractor(iframe, data, subtitleCallback, callback)
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        doc.select(".resolusi-list li").forEach { el ->
+            val base64 = el.attr("data")
+            if (base64.isBlank()) return@forEach
+
             try {
-                val decoded = String(Base64.decode(base64, Base64.DEFAULT))
-                val iframe = Regex("""src=["'](.*?)["']""").find(decoded)?.groupValues?.get(1)
-                if (iframe != null) loadExtractor(iframe, data, subtitleCallback, callback)
+                val json = String(Base64.decode(base64, Base64.DEFAULT))
+
+                Regex("""https?:\/\/dlgan\.space\/\?id=[a-zA-Z0-9]+""")
+                    .findAll(json)
+                    .map { it.value }
+                    .distinct()
+                    .forEach { link ->
+                        loadExtractor(link, data, subtitleCallback, callback)
+                    }
+
             } catch (_: Exception) {}
         }
+
         return true
     }
 }
