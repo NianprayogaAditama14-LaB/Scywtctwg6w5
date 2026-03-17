@@ -81,27 +81,25 @@ class Minochinos : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val res = app.get(
-            url,
+        val fileCode = url.substringAfter("/embed/").substringBefore("/")
+        if (fileCode.isBlank()) return
+
+        val player = app.get(
+            "$mainUrl/dl?op=view&file_code=$fileCode&embed=1",
+            referer = url,
             headers = mapOf(
-                "Referer" to url,
-                "User-Agent" to USER_AGENT
+                "User-Agent" to USER_AGENT,
+                "X-Requested-With" to "XMLHttpRequest"
             )
-        )
+        ).text
 
-        val html = res.text
-
-        val hls4 = Regex("""hls4":"([^"]+)""").find(html)?.groupValues?.get(1)
-        val hls3 = Regex("""hls3":"([^"]+)""").find(html)?.groupValues?.get(1)
-        val hls2 = Regex("""hls2":"([^"]+)""").find(html)?.groupValues?.get(1)
-
-        val video = hls4 ?: hls3 ?: hls2 ?: return
+        val stream = Regex("""/stream/[^"' ]+\.m3u8""")
+            .find(player)
+            ?.value ?: return
 
         val finalLink =
-            if (video.startsWith("/"))
-                "$mainUrl$video"
-            else
-                video
+            if (stream.startsWith("http")) stream
+            else "$mainUrl$stream"
 
         callback(
             newExtractorLink(
@@ -111,7 +109,9 @@ class Minochinos : ExtractorApi() {
                 ExtractorLinkType.M3U8
             ) {
                 headers = mapOf(
-                    "Referer" to url
+                    "Referer" to "$mainUrl/",
+                    "Origin" to mainUrl,
+                    "User-Agent" to USER_AGENT
                 )
                 quality = Qualities.Unknown.value
             }
