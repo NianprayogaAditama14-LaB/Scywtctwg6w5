@@ -10,7 +10,7 @@ class DramaIdProvider : MainAPI() {
     override val hasMainPage = true
     override var lang = "id"
 
-    override val supportedTypes = setOf(TvType.AsianDrama)
+    override val supportedTypes = setOf(TvType.AsianDrama, TvType.Movie)
 
     override val mainPage = mainPageOf(
         "" to "Terbaru",
@@ -34,7 +34,6 @@ class DramaIdProvider : MainAPI() {
             val a = it.selectFirst("a") ?: return@mapNotNull null
             val title = a.text().trim()
             val href = fixUrl(a.attr("href"))
-
             val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
             newTvSeriesSearchResponse(title, href) {
@@ -56,7 +55,6 @@ class DramaIdProvider : MainAPI() {
             val a = it.selectFirst("a") ?: return@mapNotNull null
             val title = a.text().trim()
             val href = fixUrl(a.attr("href"))
-
             val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
             newTvSeriesSearchResponse(title, href) {
@@ -68,29 +66,61 @@ class DramaIdProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
 
-        val title = doc.selectFirst("h2.single-title")
-            ?.text()?.trim()
-            ?: doc.selectFirst("h1")?.text()?.trim()
-            ?: "No Title"
+        val title = doc.selectFirst("h1.single-title, h2.single-title")
+            ?.text()?.trim() ?: "No Title"
 
-        val poster = doc.selectFirst(".thumbnail_single img")?.attr("src")
+        val poster = doc.selectFirst(".thumbnail_single img, .daftar-foto img")?.attr("src")
 
         val plot = doc.select(".synopsis p")
             .joinToString("\n") { it.text() }
             .trim()
 
-        val episodes = doc.select(".daftar-episode a").mapIndexed { index, el ->
-            val epUrl = fixUrl(el.attr("href"))
-
-            newEpisode(epUrl) {
-                this.name = "Episode ${index + 1}"
-                this.episode = index + 1
-            }
+        val infoMap = doc.select(".info ul li").associate {
+            val key = it.selectFirst("strong")?.text()?.replace(":", "")?.trim() ?: ""
+            val value = it.ownText().trim()
+            key to value
         }
 
-        return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
-            this.posterUrl = poster
-            this.plot = plot
+        val type = infoMap["Tipe"]?.lowercase()
+        val isMovie = type?.contains("movie") == true
+
+        val year = infoMap["Tahun"]?.toIntOrNull()
+
+        val duration = infoMap["Durasi"]
+            ?.replace("min.", "")
+            ?.trim()
+            ?.toIntOrNull()
+
+        val tags = doc.select(".info ul li a").map { it.text() }
+
+        return if (isMovie) {
+
+            newMovieLoadResponse(title, url, TvType.Movie, url) {
+                this.posterUrl = poster
+                this.plot = plot
+                this.year = year
+                this.duration = duration
+                this.tags = tags
+            }
+
+        } else {
+
+            val episodes = doc.select(".daftar-episode a").mapIndexed { index, el ->
+                val epUrl = fixUrl(el.attr("href"))
+
+                newEpisode(epUrl) {
+                    this.name = "Episode ${index + 1}"
+                    this.episode = index + 1
+                }
+            }
+
+            newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
+                this.posterUrl = poster
+                this.plot = plot
+                this.year = year
+                this.duration = duration
+                this.tags = tags
+            }
         }
     }
 
