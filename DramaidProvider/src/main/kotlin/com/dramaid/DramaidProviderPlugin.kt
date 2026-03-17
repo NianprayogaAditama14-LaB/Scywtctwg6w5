@@ -6,7 +6,7 @@ import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
 import com.lagradost.cloudstream3.plugins.Plugin
 
 @CloudstreamPlugin
-class DramaidProviderPlugin : Plugin() {
+class DramaIdProviderPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(DramaIdProvider())
         registerExtractorAPI(BerkasDriveExtractor())
