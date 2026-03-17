@@ -15,7 +15,7 @@ class DramaIdProvider : MainAPI() {
     override val mainPage = mainPageOf(
         "/" to "Drama Terbaru",
         "/status-drama/ongoing/" to "Ongoing",
-        "/status-drama/complete/" to "Completed",
+        "/status-drama/complete/" to "Drama Completed",
         "/genre/romance/" to "Romance",
         "/genre/sci-fi/" to "Sci-Fi",
         "/negara/korea-selatan/" to "Drama Korea",
@@ -43,7 +43,7 @@ class DramaIdProvider : MainAPI() {
                 newTvSeriesSearchResponse(title, href) {
                     this.posterUrl = poster
                 }
-            }
+            }.distinctBy { it.url }.take(20)
         } else {
             doc.select("h3.title_post").mapNotNull {
                 val a = it.selectFirst("a") ?: return@mapNotNull null
@@ -54,7 +54,7 @@ class DramaIdProvider : MainAPI() {
                 newTvSeriesSearchResponse(title, href) {
                     this.posterUrl = poster
                 }
-            }
+            }.distinctBy { it.url }.take(20)
         }
 
         return newHomePageResponse(
