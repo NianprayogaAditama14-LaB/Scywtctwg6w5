@@ -34,11 +34,18 @@ class DramaIdProvider : MainAPI() {
         val doc = app.get(url).document
 
         val home = if (request.data == "/") {
-            doc.select(".list-post-utama .style_post_1").mapNotNull { el ->
-                val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
-                val title = a.text().trim()
+            doc.select("article").mapNotNull { el ->
+                val a = el.selectFirst("a") ?: return@mapNotNull null
                 val href = fixUrl(a.attr("href"))
-                val poster = el.selectFirst(".thumbnail img")?.attr("src")
+
+                if (
+                    href.contains("#") ||
+                    href.contains("javascript") ||
+                    href.contains("/episode/")
+                ) return@mapNotNull null
+
+                val title = el.selectFirst("h2, h3")?.text()?.trim() ?: return@mapNotNull null
+                val poster = el.selectFirst("img")?.attr("src")
 
                 newTvSeriesSearchResponse(title, href) {
                     this.posterUrl = poster
@@ -47,8 +54,14 @@ class DramaIdProvider : MainAPI() {
         } else {
             doc.select("h3.title_post").mapNotNull {
                 val a = it.selectFirst("a") ?: return@mapNotNull null
-                val title = a.text().trim()
                 val href = fixUrl(a.attr("href"))
+
+                if (
+                    href.contains("#") ||
+                    href.contains("javascript")
+                ) return@mapNotNull null
+
+                val title = a.text().trim()
                 val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
                 newTvSeriesSearchResponse(title, href) {
@@ -69,8 +82,14 @@ class DramaIdProvider : MainAPI() {
 
         return doc.select("h3.title_post").mapNotNull {
             val a = it.selectFirst("a") ?: return@mapNotNull null
-            val title = a.text().trim()
             val href = fixUrl(a.attr("href"))
+
+            if (
+                href.contains("#") ||
+                href.contains("javascript")
+            ) return@mapNotNull null
+
+            val title = a.text().trim()
             val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
             newTvSeriesSearchResponse(title, href) {
@@ -106,6 +125,7 @@ class DramaIdProvider : MainAPI() {
         val duration = infoMap["Durasi"]
             ?.replace("min.", "")
             ?.replace("min", "")
+            ?.replace("m", "")
             ?.trim()
             ?.toIntOrNull()
 
