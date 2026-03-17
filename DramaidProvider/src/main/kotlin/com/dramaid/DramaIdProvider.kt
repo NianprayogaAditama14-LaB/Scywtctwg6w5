@@ -35,8 +35,7 @@ class DramaIdProvider : MainAPI() {
             val title = a.text().trim()
             val href = fixUrl(a.attr("href"))
 
-            val poster = it.parent()?.selectFirst("img")?.attr("data-src")
-                ?: it.parent()?.selectFirst("img")?.attr("src")
+            val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
@@ -49,16 +48,36 @@ class DramaIdProvider : MainAPI() {
         )
     }
 
+    override suspend fun search(query: String): List<SearchResponse> {
+        val url = "$mainUrl/?s=${query.replace(" ", "+")}"
+        val doc = app.get(url).document
+
+        return doc.select("h3.title_post").mapNotNull {
+            val a = it.selectFirst("a") ?: return@mapNotNull null
+            val title = a.text().trim()
+            val href = fixUrl(a.attr("href"))
+
+            val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
+
+            newTvSeriesSearchResponse(title, href) {
+                this.posterUrl = poster
+            }
+        }.distinctBy { it.url }
+    }
+
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
 
-        val title = doc.selectFirst("h1")?.text()?.trim() ?: "No Title"
-
-        val poster = doc.selectFirst(".thumb img")?.attr("data-src")
-            ?: doc.selectFirst(".thumb img")?.attr("src")
-
-        val plot = doc.selectFirst(".entry-content p")
+        val title = doc.selectFirst("h2.single-title")
             ?.text()?.trim()
+            ?: doc.selectFirst("h1")?.text()?.trim()
+            ?: "No Title"
+
+        val poster = doc.selectFirst(".thumbnail_single img")?.attr("src")
+
+        val plot = doc.select(".synopsis p")
+            .joinToString("\n") { it.text() }
+            .trim()
 
         val episodes = doc.select(".daftar-episode a").mapIndexed { index, el ->
             val epUrl = fixUrl(el.attr("href"))
