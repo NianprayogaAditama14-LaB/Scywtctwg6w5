@@ -60,13 +60,8 @@ class DramaIdProvider : MainAPI() {
                 ?.replace("min", "menit")
                 ?.trim()
 
-            val episode = el.selectFirst("li:contains(Episode)")?.text()
-                ?.filter { it.isDigit() }
-                ?.toIntOrNull()
-
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addSub(episode) // 🔥 SUB EP
                 this.addQuality(duration ?: "")
             }
 
@@ -131,7 +126,10 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
-        val rating = infoMap["Skor"]?.toRatingInt()
+        // ✅ FIX SCORE (GANTI RATING)
+        val score = infoMap["Skor"]
+            ?.replace(",", ".")
+            ?.toDoubleOrNull()
 
         val duration = infoMap["Durasi"]
             ?.replace("min.", "")
@@ -147,7 +145,7 @@ class DramaIdProvider : MainAPI() {
                 this.posterUrl = poster
                 this.plot = plotText
                 this.year = year
-                this.rating = rating
+                this.score = score // ✅ FIX
                 this.duration = duration
                 this.tags = tags
             }
@@ -166,7 +164,7 @@ class DramaIdProvider : MainAPI() {
             this.posterUrl = poster
             this.plot = plotText
             this.year = year
-            this.rating = rating
+            this.score = score // ✅ FIX
             this.showStatus = status
             this.duration = duration
             this.tags = tags
