@@ -52,20 +52,7 @@ class DramaIdProvider : MainAPI() {
 
             val poster = el.selectFirst("img")?.attr("src")
 
-            val durationText = el.selectFirst("li:contains(Duration)")?.text()
-            val duration = durationText
-                ?.substringAfter(":")
-                ?.replace("hr.", "jam")
-                ?.replace("hr", "jam")
-                ?.replace("min.", "menit")
-                ?.replace("min", "menit")
-                ?.trim()
-
-            val finalTitle = if (!duration.isNullOrBlank()) {
-                "$title • $duration"
-            } else title
-
-            newTvSeriesSearchResponse(finalTitle, href) {
+            newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
                 this.addQuality("HD")
             }
@@ -132,14 +119,14 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
-        // ✅ FINAL FIX SCORE (NO ERROR)
+        // ✅ SCORE FIX (pakai Skor DramaID)
         val score = infoMap["Skor"]
             ?.replace(",", ".")
             ?.substringBefore("/")
             ?.toDoubleOrNull()
             ?.let { Score.from10(it) }
 
-        // ✅ FIX DURATION
+        // ✅ DURATION tetap dipakai (tapi tidak ditampilkan di judul)
         val duration = infoMap["Durasi"]
             ?.replace("min.", "")
             ?.replace("min", "")
