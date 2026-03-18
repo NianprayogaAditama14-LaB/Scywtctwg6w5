@@ -4,7 +4,6 @@ import android.util.Base64
 import android.net.Uri
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.google.gson.JsonObject
 import org.json.JSONObject
 
 class DramaIdProvider : MainAPI() {
@@ -23,7 +22,6 @@ class DramaIdProvider : MainAPI() {
         "/negara/korea-selatan/" to "Drama Korea",
         "/negara/china/" to "Drama China",
         "/negara/japan/" to "Drama Jepang",
-        "/genre/tokusatsu/" to "Tokusatsu"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -133,8 +131,9 @@ class DramaIdProvider : MainAPI() {
                     val direct = JSONObject(apiRes).optString("direct_url")
                     if (direct.isNotEmpty()) {
                         found = true
+                        
                         callback.invoke(
-                            newExtractorLink("DramaID", "DramaID $resolution", direct, ExtractorLinkType.VIDEO) {
+                            newExtractorLink("DramaID", "DramaID", direct, ExtractorLinkType.VIDEO) {
                                 this.quality = getQualityFromName(resolution)
                             }
                         )
