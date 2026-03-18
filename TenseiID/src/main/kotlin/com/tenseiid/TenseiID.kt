@@ -108,10 +108,9 @@ class TenseiID : MainAPI() {
                         source = "Kuro",
                         name = "Kuro",
                         url = url,
-                        type = ExtractorLinkType.Other
+                        type = null
                     ) {
                         this.quality = getQualityFromUrl(url)
-                        this.isM3U8 = false
                         this.headers = mapOf(
                             "Referer" to mainUrl,
                             "User-Agent" to USER_AGENT
@@ -135,10 +134,9 @@ class TenseiID : MainAPI() {
                         source = "Kuro",
                         name = "Kuro",
                         url = url,
-                        type = ExtractorLinkType.Other
+                        type = null
                     ) {
                         this.quality = getQualityFromUrl(url)
-                        this.isM3U8 = false
                         this.headers = mapOf(
                             "Referer" to mainUrl,
                             "User-Agent" to USER_AGENT
@@ -158,10 +156,9 @@ class TenseiID : MainAPI() {
                         source = "Kuro",
                         name = "Kuro",
                         url = url,
-                        type = ExtractorLinkType.Other
+                        type = null
                     ) {
                         this.quality = getQualityFromText(qualityText)
-                        this.isM3U8 = false
                     }
                 )
             }
