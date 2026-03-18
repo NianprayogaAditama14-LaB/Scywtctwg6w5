@@ -13,7 +13,7 @@ class DramaIdProvider : MainAPI() {
     override val supportedTypes = setOf(TvType.AsianDrama, TvType.Movie)
 
     override val mainPage = mainPageOf(
-        "/" to "Drama Terbaru",
+        "" to "Drama Terbaru",
         "/status-drama/ongoing/" to "Ongoing",
         "/status-drama/complete/" to "Drama Completed",
         "/genre/romance/" to "Romance",
@@ -25,7 +25,7 @@ class DramaIdProvider : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (request.data == "/") {
+        val url = if (request.data.isBlank()) {
             mainUrl
         } else {
             "$mainUrl${request.data}page/$page/"
@@ -33,7 +33,7 @@ class DramaIdProvider : MainAPI() {
 
         val doc = app.get(url).document
 
-        val home = if (request.data == "/") {
+        val home = if (request.data.isBlank()) {
 
             val latestSection = doc.select("h2.title_index")
                 .firstOrNull { it.text().contains("Drama Terbaru", true) }
