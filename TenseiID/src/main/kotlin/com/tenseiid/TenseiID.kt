@@ -16,18 +16,11 @@ class TenseiID : MainAPI() {
     override val mainPage = mainPageOf(
         "" to "Rilis Terbaru",
         "rec" to "Rekomendasi",
-        "pop" to "Serial Populer",
+        "pop" to "Seri Populer",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = when(request.data) {
-            "" -> "$mainUrl/anime/?status=ongoing&order=update&page=$page"
-            "rec" -> "$mainUrl/anime/?status=ongoing&order=popular&page=$page"
-            "pop" -> "$mainUrl/anime/?status=ongoing&order=popular&page=$page"
-            else -> "$mainUrl/anime/?status=ongoing&order=update&page=$page"
-        }
-
-        val document = app.get(url).document
+        val document = app.get("$mainUrl/${request.data}&page=$page").document
         val home = document.select("div.listupd > article").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(
@@ -124,11 +117,9 @@ class TenseiID : MainAPI() {
                 }
 
                 callback(
-                    ExtractorLink(
-                        source = "Kuro",
+                    newExtractorLink(
                         name = "Kuro",
                         url = url,
-                        referer = "",
                         quality = quality,
                         isM3u8 = false,
                         headers = mapOf(
@@ -145,7 +136,6 @@ class TenseiID : MainAPI() {
 
             if (url.contains(".mp4") && added.add(url)) {
                 val qualityText = it.selectFirst("strong")?.text().orEmpty()
-
                 val quality = when {
                     qualityText.contains("360") -> Qualities.P360.value
                     qualityText.contains("480") -> Qualities.P480.value
@@ -154,11 +144,9 @@ class TenseiID : MainAPI() {
                 }
 
                 callback(
-                    ExtractorLink(
-                        source = "Kuro",
+                    newExtractorLink(
                         name = "Kuro",
                         url = url,
-                        referer = "",
                         quality = quality,
                         isM3u8 = false
                     )
