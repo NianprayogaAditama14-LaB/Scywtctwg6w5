@@ -52,9 +52,23 @@ class DramaIdProvider : MainAPI() {
 
             val poster = el.selectFirst("img")?.attr("src")
 
+            val episodeText = el.select("div.info ul li")
+                .firstOrNull { it.text().contains("Episode") }
+                ?.text()
+
+            val latestEp = episodeText
+                ?.substringAfter(":")
+                ?.substringAfterLast("-")
+                ?.trim()
+
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
                 this.addQuality("HD")
+                if (!latestEp.isNullOrBlank()) {
+                    this.addSub("Sub • Ep $latestEp")
+                } else {
+                    this.addSub("Sub Indo")
+                }
             }
 
         }
@@ -71,8 +85,8 @@ class DramaIdProvider : MainAPI() {
         val url = "$mainUrl/?s=${query.replace(" ", "+")}"
         val doc = app.get(url).document
 
-        return doc.select("h3.title_post").mapNotNull {
-            val a = it.selectFirst("a") ?: return@mapNotNull null
+        return doc.select("div.post_index article").mapNotNull { el ->
+            val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
             val href = fixUrl(a.attr("href"))
 
             if (
@@ -81,11 +95,25 @@ class DramaIdProvider : MainAPI() {
             ) return@mapNotNull null
 
             val title = a.text().trim()
-            val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
+            val poster = el.selectFirst(".thumbnail img")?.attr("src")
+
+            val episodeText = el.select("div.info ul li")
+                .firstOrNull { it.text().contains("Episode") }
+                ?.text()
+
+            val latestEp = episodeText
+                ?.substringAfter(":")
+                ?.substringAfterLast("-")
+                ?.trim()
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
                 this.addQuality("HD")
+                if (!latestEp.isNullOrBlank()) {
+                    this.addSub("Sub • Ep $latestEp")
+                } else {
+                    this.addSub("Sub Indo")
+                }
             }
         }.distinctBy { it.url }
     }
