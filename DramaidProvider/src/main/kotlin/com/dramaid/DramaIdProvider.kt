@@ -65,9 +65,9 @@ class DramaIdProvider : MainAPI() {
                 this.posterUrl = poster
                 this.addQuality("HD")
                 if (!latestEp.isNullOrBlank()) {
-                    this.addSub("Sub • Ep $latestEp")
+                    this.addQuality("Sub • Ep $latestEp")
                 } else {
-                    this.addSub("Sub Indo")
+                    this.addQuality("Sub Indo")
                 }
             }
 
@@ -110,9 +110,9 @@ class DramaIdProvider : MainAPI() {
                 this.posterUrl = poster
                 this.addQuality("HD")
                 if (!latestEp.isNullOrBlank()) {
-                    this.addSub("Sub • Ep $latestEp")
+                    this.addQuality("Sub • Ep $latestEp")
                 } else {
-                    this.addSub("Sub Indo")
+                    this.addQuality("Sub Indo")
                 }
             }
         }.distinctBy { it.url }
