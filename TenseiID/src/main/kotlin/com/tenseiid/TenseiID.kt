@@ -38,7 +38,13 @@ class TenseiID : MainAPI() {
     private fun Element.toSearchResult(): SearchResponse {
         val title = this.select("div.bsx > a").attr("title")
         val href = fixUrl(this.select("div.bsx > a").attr("href"))
-        val posterUrl = fixUrlNull(this.select("div.bsx > a img").attr("src"))
+
+        val img = this.select("div.bsx > a img").first()
+        val posterUrl = fixUrlNull(
+            img?.attr("data-src")
+                ?: img?.attr("data-lazy-src")
+                ?: img?.attr("src")
+        )
 
         return newAnimeSearchResponse(title, href, TvType.Anime) {
             this.posterUrl = posterUrl
@@ -60,7 +66,6 @@ class TenseiID : MainAPI() {
             .ifEmpty { document.selectFirst("meta[property=og:image]")?.attr("content").orEmpty() }
 
         val description = document.selectFirst("div.entry-content")?.text()?.trim()
-
         val isMovie = document.select(".spe").text().contains("Movie", true)
 
         return if (!isMovie) {
@@ -69,20 +74,17 @@ class TenseiID : MainAPI() {
                 val href = it.select("a").attr("href")
                 val epText = it.selectFirst("div.epl-num")?.text().orEmpty()
                 val epNum = episodeRegex.find(epText)?.groupValues?.get(1)?.toIntOrNull()
-
                 newEpisode(href) {
                     episode = epNum
                     name = epNum?.let { "Episode $it" } ?: epText
                 }
             }
-
             newTvSeriesLoadResponse(title, url, TvType.Anime, episodes.reversed()) {
                 this.posterUrl = poster
                 this.plot = description
             }
         } else {
             val playUrl = document.selectFirst("div.eplister a")?.attr("href").orEmpty()
-
             newMovieLoadResponse(title, url, TvType.Movie, playUrl) {
                 this.posterUrl = poster
                 this.plot = description
@@ -123,11 +125,9 @@ class TenseiID : MainAPI() {
         document.select(".mobius option").forEach {
             val base64 = it.attr("value")
             if (base64.isEmpty()) return@forEach
-
             val decoded = base64Decode(base64)
             val doc = Jsoup.parse(decoded)
             val url = doc.select("iframe").attr("src")
-
             if (url.contains(".mp4") && added.add(url)) {
                 callback(
                     newExtractorLink(
@@ -149,7 +149,6 @@ class TenseiID : MainAPI() {
         document.select(".soraurlx").forEach {
             val url = it.select("a").attr("href")
             val qualityText = it.selectFirst("strong")?.text().orEmpty()
-
             if (url.contains(".mp4") && added.add(url)) {
                 callback(
                     newExtractorLink(
