@@ -1,12 +1,11 @@
 package com.dramaid
 
 import android.util.Base64
-import android.content.Context
+import android.net.Uri
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
-import com.lagradost.cloudstream3.plugins.Plugin
 import com.google.gson.JsonObject
+import org.json.JSONObject
 
 class DramaIdProvider : MainAPI() {
     override var mainUrl = "https://drama-id.com"
@@ -48,7 +47,10 @@ class DramaIdProvider : MainAPI() {
             }
         }.distinctBy { it.url }.take(20)
 
-        return newHomePageResponse(listOf(HomePageList(request.name, home)), hasNext = doc.selectFirst("link[rel=next]") != null)
+        return newHomePageResponse(
+            listOf(HomePageList(request.name, home)),
+            hasNext = doc.selectFirst("link[rel=next]") != null
+        )
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -73,20 +75,30 @@ class DramaIdProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
+
         val title = doc.selectFirst("h1.single-title, h2.single-title")?.text()?.trim() ?: "No Title"
         val poster = doc.selectFirst(".thumbnail_single img, .daftar-foto img")?.attr("src")
         val plotText = doc.select(".synopsis p").joinToString("\n") { it.text() }.trim()
+
         val infoMap = doc.select(".info ul li").associate {
             val key = it.selectFirst("strong")?.text()?.replace(":", "")?.trim() ?: ""
-            val value = it.select("a").joinToString(", ") { a -> a.text() }.ifEmpty { it.ownText().trim() }
+            val value = it.select("a").joinToString(", ") { a -> a.text() }
+                .ifEmpty { it.ownText().trim() }
             key to value
         }
 
         val type = infoMap["Tipe"]?.lowercase()
         val isMovie = type?.contains("movie") == true
         val year = infoMap["Tahun"]?.toIntOrNull()
-        val status = if (infoMap["Status"]?.contains("ongoing", true) == true) ShowStatus.Ongoing else ShowStatus.Completed
-        val score = infoMap["Skor"]?.replace(",", ".")?.substringBefore("/")?.toDoubleOrNull()?.let { Score.from10(it) }
+        val status = if (infoMap["Status"]?.contains("ongoing", true) == true)
+            ShowStatus.Ongoing else ShowStatus.Completed
+
+        val score = infoMap["Skor"]
+            ?.replace(",", ".")
+            ?.substringBefore("/")
+            ?.toDoubleOrNull()
+            ?.let { Score.from10(it) }
+
         val tags = doc.select(".info ul li a").map { it.text() }
 
         if (isMovie) {
@@ -122,40 +134,49 @@ class DramaIdProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+
         val doc = app.get(data).document
         var found = false
 
-        doc.select(".streaming-box, .resolusi-list li").forEach { el ->
-            val base64 = el.attr("data")
-            if (base64.isBlank()) return@forEach
+        val elements = doc.select(".resolusi-list li")
+
+        for (el in elements) {
+            val encoded = el.attr("data")
+            if (encoded.isBlank()) continue
 
             try {
-                val decoded = String(Base64.decode(base64, Base64.DEFAULT)).trim()
-                if (decoded.startsWith("http")) {
-                    found = true
-                    callback(
-                        newExtractorLink("DramaID", "Direct", decoded, ExtractorLinkType.VIDEO) {
-                            this.headers = mapOf("User-Agent" to USER_AGENT)
-                        }
-                    )
-                } else {
-                    val iframe = Regex("""src=["'](.*?)["']""").find(decoded)?.groupValues?.get(1)
-                    if (iframe != null) {
-                        // ambil direct link dari API dlgan
-                        val id = Regex("""id=([^&]+)""").find(iframe)?.groupValues?.getOrNull(1) ?: return@forEach
-                        val api = "https://api.dlgan.space/api.php?id=$id"
-                        val json = app.get(api).parsedSafe<JsonObject>() ?: return@forEach
-                        val video = json.get("direct_url")?.asString ?: return@forEach
-                        val qualityText = Regex("""(\d{3,4}p)""").find(video)?.value
+                val jsonStr = String(Base64.decode(encoded, Base64.DEFAULT))
+                val obj = JSONObject(jsonStr)
+
+                val resolution = obj.optString("resolution")
+                val links = obj.getJSONArray("links")
+
+                for (i in 0 until links.length()) {
+                    var url = links.getJSONObject(i).getString("url")
+
+                    url = url.replace("\\/", "/")
+
+                    val id = Uri.parse(url).getQueryParameter("id") ?: continue
+
+                    val apiRes = app.get("https://api.dlgan.space/api.php?id=$id").text
+                    val direct = JSONObject(apiRes).optString("direct_url")
+
+                    if (direct.isNotEmpty()) {
                         found = true
-                        callback(
-                            newExtractorLink("DramaID", "Direct ${qualityText ?: ""}", video, ExtractorLinkType.VIDEO) {
-                                this.headers = mapOf("User-Agent" to USER_AGENT)
-                                this.quality = getQualityFromName(qualityText)
-                            }
+
+                        callback.invoke(
+                            ExtractorLink(
+                                "DramaID",
+                                "DramaID $resolution",
+                                direct,
+                                "",
+                                getQualityFromName(resolution),
+                                false
+                            )
                         )
                     }
                 }
+
             } catch (_: Exception) {}
         }
 
