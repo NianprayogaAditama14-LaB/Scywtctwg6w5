@@ -119,20 +119,11 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
-        // ✅ SCORE FIX (pakai Skor DramaID)
         val score = infoMap["Skor"]
             ?.replace(",", ".")
             ?.substringBefore("/")
             ?.toDoubleOrNull()
             ?.let { Score.from10(it) }
-
-        // ✅ DURATION tetap dipakai (tapi tidak ditampilkan di judul)
-        val duration = infoMap["Durasi"]
-            ?.replace("min.", "")
-            ?.replace("min", "")
-            ?.replace("jam", "")
-            ?.trim()
-            ?.toIntOrNull()
 
         val tags = doc.select(".info ul li a").map { it.text() }
 
@@ -142,7 +133,6 @@ class DramaIdProvider : MainAPI() {
                 this.plot = plotText
                 this.year = year
                 this.score = score
-                this.duration = duration
                 this.tags = tags
             }
         }
@@ -162,7 +152,6 @@ class DramaIdProvider : MainAPI() {
             this.year = year
             this.score = score
             this.showStatus = status
-            this.duration = duration
             this.tags = tags
         }
     }
