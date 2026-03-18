@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 13
+version = 5
 
 
 cloudstream {
@@ -7,7 +7,7 @@ cloudstream {
     // All of these properties are optional, you can safely remove them
 
     // description = "Lorem Ipsum"
-     authors = listOf("Hexated")
+    authors = listOf("Sanz")
 
     /**
      * Status int as the following:
@@ -23,5 +23,8 @@ cloudstream {
         "OVA",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=nimegami.id&sz=%size%"
+
+    iconUrl = "https://icons.duckduckgo.com/ip3/ww3.anoboy.app.ico"
+
+    isCrossPlatform = true
 }
