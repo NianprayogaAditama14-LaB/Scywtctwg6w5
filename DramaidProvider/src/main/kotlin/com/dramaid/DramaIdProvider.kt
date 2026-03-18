@@ -26,68 +26,48 @@ class DramaIdProvider : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = if (request.data.isBlank()) {
-            mainUrl
+            "$mainUrl/page/$page/"
         } else {
             "$mainUrl${request.data}page/$page/"
         }
 
         val doc = app.get(url).document
 
-        val home = if (request.data.isBlank()) {
+        val home = doc.select("div.post_index article").mapNotNull { el ->
 
-            val latestSection = doc.select("h2.title_index")
-                .firstOrNull { it.text().contains("Drama Terbaru", true) }
-                ?.parent()
+            val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
+            val href = fixUrl(a.attr("href"))
+                .substringBefore("?")
+                .trimEnd('/')
 
-            latestSection
-                ?.select("div.post_index > div.style_post_1 > article")
-                ?.mapNotNull { el ->
+            if (
+                href.contains("#") ||
+                href.contains("javascript") ||
+                href.contains("/episode/")
+            ) return@mapNotNull null
 
-                    val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
-                    val href = fixUrl(a.attr("href"))
-                        .substringBefore("?")
-                        .trimEnd('/')
+            val title = a.text()
+                .replace("Subtitle Indonesia", "")
+                .trim()
 
-                    val title = a.text()
-                        .replace("Subtitle Indonesia", "")
-                        .trim()
+            val poster = el.selectFirst("img")?.attr("src")
 
-                    val poster = el.selectFirst("img")?.attr("src")
+            val duration = el.selectFirst("li:contains(Duration)")?.text()
+                ?.substringAfter(":")
+                ?.replace("hr.", "jam")
+                ?.replace("hr", "jam")
+                ?.replace("min.", "menit")
+                ?.replace("min", "menit")
+                ?.trim()
 
-                    val duration = el.selectFirst("li:contains(Duration)")?.text()
-                        ?.substringAfter(":")
-                        ?.replace("hr.", "jam")
-                        ?.replace("min.", "menit")
-                        ?.replace("min", "menit")
-                        ?.trim()
+            newTvSeriesSearchResponse(title, href) {
+                this.posterUrl = poster
+                this.addQuality(duration ?: "")
+            }
 
-                    newTvSeriesSearchResponse(title, href) {
-                        this.posterUrl = poster
-                        this.addQuality(duration ?: "")
-                    }
-                }
-                ?.distinctBy { it.url }
-                ?.take(20)
-                ?: emptyList()
-
-        } else {
-            doc.select("h3.title_post").mapNotNull {
-                val a = it.selectFirst("a") ?: return@mapNotNull null
-                val href = fixUrl(a.attr("href"))
-
-                if (
-                    href.contains("#") ||
-                    href.contains("javascript")
-                ) return@mapNotNull null
-
-                val title = a.text().trim()
-                val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
-
-                newTvSeriesSearchResponse(title, href) {
-                    this.posterUrl = poster
-                }
-            }.distinctBy { it.url }.take(20)
         }
+        .distinctBy { it.url }
+        .take(20)
 
         return newHomePageResponse(
             listOf(HomePageList(request.name, home)),
@@ -125,7 +105,7 @@ class DramaIdProvider : MainAPI() {
 
         val poster = doc.selectFirst(".thumbnail_single img, .daftar-foto img")?.attr("src")
 
-        val plot = doc.select(".synopsis p")
+        val plotText = doc.select(".synopsis p")
             .joinToString("\n") { it.text() }
             .trim()
 
@@ -156,9 +136,9 @@ class DramaIdProvider : MainAPI() {
                 this.episode = 1
             }
 
-            return newTvSeriesLoadResponse(title, url, TvType.Movie, listOf(episode)) {
+            return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
-                this.plot = plot
+                this.plot = plotText
                 this.year = year
                 this.duration = duration
                 this.tags = tags
@@ -176,7 +156,7 @@ class DramaIdProvider : MainAPI() {
 
         return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
             this.posterUrl = poster
-            this.plot = plot
+            this.plot = plotText
             this.year = year
             this.duration = duration
             this.tags = tags
