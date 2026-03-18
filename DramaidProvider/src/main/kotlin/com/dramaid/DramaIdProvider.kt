@@ -63,7 +63,7 @@ class DramaIdProvider : MainAPI() {
 
                     newTvSeriesSearchResponse(title, href) {
                         this.posterUrl = poster
-                        this.plot = duration
+                        this.addQuality(duration ?: "")
                     }
                 }
                 ?.distinctBy { it.url }
