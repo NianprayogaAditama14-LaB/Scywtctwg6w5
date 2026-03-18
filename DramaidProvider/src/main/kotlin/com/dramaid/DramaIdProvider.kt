@@ -44,7 +44,9 @@ class DramaIdProvider : MainAPI() {
             val poster = el.selectFirst("img")?.attr("src")
 
             val episodeText = el.select("ul li:contains(Episode)").text()
-            val latestEp = Regex("(\\d+)$").find(episodeText)?.groupValues?.getOrNull(1)
+            val latestEp = Regex("(\\d+)(?!.*\\d)")
+                .find(episodeText)
+                ?.value
 
             val scoreText = el.select("ul li:contains(Score)").text()
             val score = Regex("(\\d+(\\.\\d+)?)")
@@ -54,16 +56,13 @@ class DramaIdProvider : MainAPI() {
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-
                 this.quality = SearchQuality.HD
 
                 if (!latestEp.isNullOrBlank()) {
                     this.addQuality("Ep $latestEp")
                 }
 
-                score?.let {
-                    this.rating = it
-                }
+                this.score = Score.from10(score)
             }
         }.distinctBy { it.url }
 
@@ -87,7 +86,9 @@ class DramaIdProvider : MainAPI() {
             val poster = it.parent()?.selectFirst("img")?.attr("src")
 
             val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
-            val latestEp = Regex("(\\d+)$").find(episodeText ?: "")?.groupValues?.getOrNull(1)
+            val latestEp = Regex("(\\d+)(?!.*\\d)")
+                .find(episodeText ?: "")
+                ?.value
 
             val scoreText = it.parent()?.select("ul li:contains(Score)")?.text()
             val score = Regex("(\\d+(\\.\\d+)?)")
@@ -103,9 +104,7 @@ class DramaIdProvider : MainAPI() {
                     this.addQuality("Ep $latestEp")
                 }
 
-                score?.let {
-                    this.rating = it
-                }
+                this.score = Score.from10(score)
             }
         }.distinctBy { it.url }
     }
@@ -146,7 +145,6 @@ class DramaIdProvider : MainAPI() {
             ?.replace(",", ".")
             ?.substringBefore("/")
             ?.toDoubleOrNull()
-            ?.let { Score.from10(it) }
 
         val tags = doc.select(".info ul li a").map { it.text() }
 
@@ -155,7 +153,7 @@ class DramaIdProvider : MainAPI() {
                 this.posterUrl = poster
                 this.plot = plot
                 this.year = year
-                this.score = score
+                this.score = Score.from10(score)
                 this.tags = tags
             }
         }
@@ -171,7 +169,7 @@ class DramaIdProvider : MainAPI() {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
-            this.score = score
+            this.score = Score.from10(score)
             this.showStatus = status
             this.tags = tags
         }
