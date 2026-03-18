@@ -43,12 +43,12 @@ class DramaIdProvider : MainAPI() {
             val title = a.text().replace("Subtitle Indonesia", "").trim()
             val poster = el.selectFirst("img")?.attr("src")
 
-            val episodeText = el.select("ul li:contains(Episode)").text()
+            val episodeText = el.select("li:has(strong:contains(Episode))").text()
             val latestEp = Regex("(\\d+)(?!.*\\d)")
                 .find(episodeText)
                 ?.value
 
-            val scoreText = el.select("ul li:contains(Score)").text()
+            val scoreText = el.select("li:has(strong:contains(Score))").text()
             val score = Regex("(\\d+(\\.\\d+)?)")
                 .find(scoreText)
                 ?.value
@@ -83,14 +83,16 @@ class DramaIdProvider : MainAPI() {
                 return@mapNotNull null
 
             val title = a.text().trim()
-            val poster = it.parent()?.selectFirst("img")?.attr("src")
+            val parent = it.parent()
 
-            val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
+            val poster = parent?.selectFirst("img")?.attr("src")
+
+            val episodeText = parent?.select("li:has(strong:contains(Episode))")?.text()
             val latestEp = Regex("(\\d+)(?!.*\\d)")
                 .find(episodeText ?: "")
                 ?.value
 
-            val scoreText = it.parent()?.select("ul li:contains(Score)")?.text()
+            val scoreText = parent?.select("li:has(strong:contains(Score))")?.text()
             val score = Regex("(\\d+(\\.\\d+)?)")
                 .find(scoreText ?: "")
                 ?.value
@@ -227,7 +229,7 @@ class DramaIdProvider : MainAPI() {
         }
 
         qualityMap
-            .toSortedMap()
+            .toSortedMap(compareByDescending { it })
             .forEach { (_, pair) ->
                 val (res, link) = pair
 
