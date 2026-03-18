@@ -15,15 +15,13 @@ class BerkasDriveExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val data = Regex("""data\s*=\s*["']([^"']+)""")
             .find(url)
             ?.groupValues?.getOrNull(1)
 
         if (data != null) {
             val decoded = String(Base64.decode(data, Base64.DEFAULT))
-
-            val links = Regex("""https?:\/\/dlgan\.space\/\?id=[a-zA-Z0-9]+[^"']*""")
+            val links = Regex("""https?:\/\/dlgan\.space\/\?id=[a-zA-Z0-9]+""")
                 .findAll(decoded)
                 .map { it.value }
                 .distinct()
@@ -31,7 +29,6 @@ class BerkasDriveExtractor : ExtractorApi() {
             links.forEach { link ->
                 loadFromDlgan(link, callback)
             }
-
             return
         }
 
