@@ -60,8 +60,13 @@ class DramaIdProvider : MainAPI() {
                 ?.replace("min", "menit")
                 ?.trim()
 
+            val episode = el.selectFirst("li:contains(Episode)")?.text()
+                ?.filter { it.isDigit() }
+                ?.toIntOrNull()
+
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
+                this.addSub(episode) // 🔥 SUB EP
                 this.addQuality(duration ?: "")
             }
 
@@ -121,6 +126,13 @@ class DramaIdProvider : MainAPI() {
 
         val year = infoMap["Tahun"]?.toIntOrNull()
 
+        val status = when {
+            infoMap["Status"]?.contains("ongoing", true) == true -> ShowStatus.Ongoing
+            else -> ShowStatus.Completed
+        }
+
+        val rating = infoMap["Skor"]?.toRatingInt()
+
         val duration = infoMap["Durasi"]
             ?.replace("min.", "")
             ?.replace("min", "")
@@ -131,15 +143,11 @@ class DramaIdProvider : MainAPI() {
         val tags = doc.select(".info ul li a").map { it.text() }
 
         if (isMovie) {
-            val episode = newEpisode(url) {
-                this.name = "Putar Film"
-                this.episode = 1
-            }
-
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
                 this.plot = plotText
                 this.year = year
+                this.rating = rating
                 this.duration = duration
                 this.tags = tags
             }
@@ -158,6 +166,8 @@ class DramaIdProvider : MainAPI() {
             this.posterUrl = poster
             this.plot = plotText
             this.year = year
+            this.rating = rating
+            this.showStatus = status
             this.duration = duration
             this.tags = tags
         }
