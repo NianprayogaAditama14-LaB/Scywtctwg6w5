@@ -9,6 +9,5 @@ import com.lagradost.cloudstream3.plugins.Plugin
 class DramaIdProviderPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(DramaIdProvider())
-        registerExtractorAPI(BerkasDriveExtractor())
     }
 }
