@@ -21,7 +21,7 @@ class DramaIdProvider : MainAPI() {
         "/genre/sci-fi/" to "Sci-Fi",
         "/negara/korea-selatan/" to "Drama Korea",
         "/negara/china/" to "Drama China",
-        "/negara/japan/" to "Drama Jepang"
+        "/negara/japan/" to "Drama Jepang",
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -67,22 +67,15 @@ class DramaIdProvider : MainAPI() {
 
         val typeText = doc.select(".info li:contains(Tipe)").text()
         val isMovie = typeText.contains("Movie", true)
-
         val year = doc.select(".info li:contains(Tahun)").text().toIntOrNull()
-
         val statusText = doc.select(".info li:contains(Status)").text()
         val status = when {
             statusText.contains("ongoing", true) -> ShowStatus.Ongoing
             statusText.contains("completed", true) -> ShowStatus.Completed
-            else -> ShowStatus.Unknown
+            else -> ShowStatus.Completed
         }
-
-        val scoreText = doc.select(".info li:contains(Skor)").text()
-        val score = scoreText.replace(",", ".")
-            .substringBefore("/")
-            .toDoubleOrNull()
-            ?.let { Score.from10(it) }
-
+        val scoreText = doc.select(".info li:contains(Skor)").text().replace(",", ".").substringBefore("/").toDoubleOrNull()
+        val score = scoreText?.let { Score.from10(it) }
         val tags = doc.select(".info li a").map { it.text() }
 
         if (isMovie) {
@@ -121,9 +114,10 @@ class DramaIdProvider : MainAPI() {
 
         val doc = app.get(data).document
         var found = false
-        val seen = mutableSetOf<String>()
+        val addedResolutions = mutableSetOf<String>()
 
         val elements = doc.select(".resolusi-list li")
+
         for (el in elements) {
             val encoded = el.attr("data")
             if (encoded.isBlank()) continue
@@ -133,16 +127,17 @@ class DramaIdProvider : MainAPI() {
                 val obj = JSONObject(jsonStr)
 
                 val resolution = obj.optString("resolution")
-                val links = obj.getJSONArray("links")
+                if (resolution in addedResolutions) continue // cegah duplikat
+                addedResolutions.add(resolution)
 
+                val links = obj.getJSONArray("links")
                 for (i in 0 until links.length()) {
                     var url = links.getJSONObject(i).getString("url")
                     url = url.replace("\\/", "/")
                     val id = Uri.parse(url).getQueryParameter("id") ?: continue
                     val apiRes = app.get("https://api.dlgan.space/api.php?id=$id").text
                     val direct = JSONObject(apiRes).optString("direct_url")
-
-                    if (direct.isNotEmpty() && seen.add(direct)) {
+                    if (direct.isNotEmpty()) {
                         found = true
                         callback.invoke(
                             newExtractorLink("DramaID", "DramaID $resolution", direct, ExtractorLinkType.VIDEO) {
