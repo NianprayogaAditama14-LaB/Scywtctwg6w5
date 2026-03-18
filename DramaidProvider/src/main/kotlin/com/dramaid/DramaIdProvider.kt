@@ -218,7 +218,7 @@ class DramaIdProvider : MainAPI() {
                 callback.invoke(
                     newExtractorLink(
                         "DramaID",
-                        "DramaID $res",
+                        "DramaID",
                         link,
                         ExtractorLinkType.VIDEO
                     ) {
