@@ -52,7 +52,8 @@ class DramaIdProvider : MainAPI() {
 
             val poster = el.selectFirst("img")?.attr("src")
 
-            val duration = el.selectFirst("li:contains(Duration)")?.text()
+            val durationText = el.selectFirst("li:contains(Duration)")?.text()
+            val duration = durationText
                 ?.substringAfter(":")
                 ?.replace("hr.", "jam")
                 ?.replace("hr", "jam")
@@ -60,7 +61,7 @@ class DramaIdProvider : MainAPI() {
                 ?.replace("min", "menit")
                 ?.trim()
 
-            val finalTitle = if (duration != null) {
+            val finalTitle = if (!duration.isNullOrBlank()) {
                 "$title • $duration"
             } else title
 
@@ -131,16 +132,18 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
+        // ✅ FIX SCORE (DramaID → Skor)
         val score = infoMap["Skor"]
             ?.replace(",", ".")
             ?.substringBefore("/")
             ?.toDoubleOrNull()
-            ?.let { Score(it) }
+            ?.let { Score((it * 10).toInt()) }
 
+        // ✅ FIX DURATION
         val duration = infoMap["Durasi"]
             ?.replace("min.", "")
             ?.replace("min", "")
-            ?.replace("m", "")
+            ?.replace("jam", "")
             ?.trim()
             ?.toIntOrNull()
 
