@@ -1,0 +1,171 @@
+package com.tenseiid
+
+import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.utils.*
+import org.jsoup.Jsoup
+
+class TenseiID : MainAPI() {
+    override var mainUrl = "https://tensei.club"
+    override var name = "TenseiID"
+    override val hasMainPage = true
+    override var lang = "id"
+    override val hasDownloadSupport = true
+    override val supportedTypes = setOf(TvType.Anime, TvType.Movie)
+
+    override val mainPage = mainPageOf(
+        "" to "Rilis Terbaru",
+        "rec" to "Rekomendasi",
+        "pop" to "Serial Populer",
+    )
+
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val url = when(request.data) {
+            "" -> "$mainUrl/anime/?status=ongoing&order=update&page=$page"
+            "rec" -> "$mainUrl/anime/?status=ongoing&order=popular&page=$page"
+            "pop" -> "$mainUrl/anime/?status=ongoing&order=popular&page=$page"
+            else -> "$mainUrl/anime/?status=ongoing&order=update&page=$page"
+        }
+
+        val document = app.get(url).document
+        val home = document.select("div.listupd > article").mapNotNull { it.toSearchResult() }
+
+        return newHomePageResponse(
+            listOf(
+                HomePageList(
+                    name = request.name,
+                    list = home,
+                    isHorizontalImages = false
+                )
+            ),
+            hasNext = true
+        )
+    }
+
+    private fun Element.toSearchResult(): SearchResponse {
+        val title = this.select("div.bsx > a").attr("title")
+        val href = fixUrl(this.select("div.bsx > a").attr("href"))
+        val posterUrl = fixUrlNull(this.select("div.bsx > a img").attr("src"))
+
+        return newAnimeSearchResponse(title, href, TvType.Anime) {
+            this.posterUrl = posterUrl
+        }
+    }
+
+    override suspend fun search(query: String, page: Int): SearchResponseList {
+        val document = app.get("$mainUrl/page/$page/?s=$query").document
+        return document.select("div.listupd > article")
+            .mapNotNull { it.toSearchResult() }
+            .toNewSearchResponseList()
+    }
+
+    override suspend fun load(url: String): LoadResponse {
+        val document = app.get(url).document
+
+        val title = document.selectFirst("h1.entry-title")?.text()?.trim().orEmpty()
+        val poster = document.select("div.thumb img").attr("src")
+            .ifEmpty { document.selectFirst("meta[property=og:image]")?.attr("content").orEmpty() }
+
+        val description = document.selectFirst("div.entry-content")?.text()?.trim()
+
+        val isMovie = document.select(".spe").text().contains("Movie", true)
+
+        return if (!isMovie) {
+            val episodeRegex = Regex("(\\d+)")
+            val episodes = document.select("div.eplister > ul > li").map {
+                val href = it.select("a").attr("href")
+                val epText = it.selectFirst("div.epl-num")?.text().orEmpty()
+                val epNum = episodeRegex.find(epText)?.groupValues?.get(1)?.toIntOrNull()
+
+                newEpisode(href) {
+                    episode = epNum
+                    name = epNum?.let { "Episode $it" } ?: epText
+                }
+            }
+
+            newTvSeriesLoadResponse(title, url, TvType.Anime, episodes.reversed()) {
+                this.posterUrl = poster
+                this.plot = description
+            }
+        } else {
+            val playUrl = document.selectFirst("div.eplister a")?.attr("href").orEmpty()
+
+            newMovieLoadResponse(title, url, TvType.Movie, playUrl) {
+                this.posterUrl = poster
+                this.plot = description
+            }
+        }
+    }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+
+        val document = app.get(data).document
+        val added = mutableSetOf<String>()
+
+        document.select(".mobius option").forEach {
+            val base64 = it.attr("value")
+            if (base64.isEmpty()) return@forEach
+
+            val decoded = base64Decode(base64)
+            val doc = Jsoup.parse(decoded)
+            val url = doc.select("iframe").attr("src")
+
+            if (url.contains(".mp4") && added.add(url)) {
+                val quality = when {
+                    url.contains("360") -> Qualities.P360.value
+                    url.contains("480") -> Qualities.P480.value
+                    url.contains("720") -> Qualities.P720.value
+                    else -> Qualities.Unknown.value
+                }
+
+                callback(
+                    ExtractorLink(
+                        source = "Kuro",
+                        name = "Kuro",
+                        url = url,
+                        referer = "",
+                        quality = quality,
+                        isM3u8 = false,
+                        headers = mapOf(
+                            "Referer" to mainUrl,
+                            "User-Agent" to USER_AGENT
+                        )
+                    )
+                )
+            }
+        }
+
+        document.select(".soraurlx").forEach {
+            val url = it.select("a").attr("href")
+
+            if (url.contains(".mp4") && added.add(url)) {
+                val qualityText = it.selectFirst("strong")?.text().orEmpty()
+
+                val quality = when {
+                    qualityText.contains("360") -> Qualities.P360.value
+                    qualityText.contains("480") -> Qualities.P480.value
+                    qualityText.contains("720") -> Qualities.P720.value
+                    else -> Qualities.Unknown.value
+                }
+
+                callback(
+                    ExtractorLink(
+                        source = "Kuro",
+                        name = "Kuro",
+                        url = url,
+                        referer = "",
+                        quality = quality,
+                        isM3u8 = false
+                    )
+                )
+            }
+        }
+
+        return true
+    }
+}
