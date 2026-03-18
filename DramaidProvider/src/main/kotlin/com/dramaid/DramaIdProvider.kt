@@ -11,6 +11,7 @@ class DramaIdProvider : MainAPI() {
     override var name = "DramaID"
     override val hasMainPage = true
     override var lang = "id"
+
     override val supportedTypes = setOf(TvType.AsianDrama, TvType.Movie)
 
     override val mainPage = mainPageOf(
@@ -25,35 +26,67 @@ class DramaIdProvider : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (request.data.isBlank()) "$mainUrl/page/$page/" else "$mainUrl${request.data}page/$page/"
+        val url = if (request.data.isBlank())
+            "$mainUrl/page/$page/"
+        else
+            "$mainUrl${request.data}page/$page/"
+
         val doc = app.get(url).document
 
         val home = doc.select("div.post_index article").mapNotNull { el ->
             val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
             val href = fixUrl(a.attr("href")).substringBefore("?").trimEnd('/')
-            if (href.contains("#") || href.contains("javascript") || href.contains("/episode/")) return@mapNotNull null
+
+            if (href.contains("#") || href.contains("javascript") || href.contains("/episode/"))
+                return@mapNotNull null
 
             val title = a.text().replace("Subtitle Indonesia", "").trim()
             val poster = el.selectFirst("img")?.attr("src")
 
+            val episodeText = el.select("ul li:contains(Episode)").text()
+            val latestEp = Regex("(\\d+)$").find(episodeText)?.groupValues?.getOrNull(1)
+
+            val badge = if (!latestEp.isNullOrBlank())
+                "Ep $latestEp"
+            else
+                "HD Sub Indo"
+
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
+                this.addQuality(badge)
             }
         }.distinctBy { it.url }
 
-        return newHomePageResponse(listOf(HomePageList(request.name, home)))
+        return newHomePageResponse(
+            listOf(HomePageList(request.name, home)),
+            hasNext = doc.selectFirst("link[rel=next]") != null
+        )
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val doc = app.get("$mainUrl/?s=${query.replace(" ", "+")}").document
+
         return doc.select("h3.title_post").mapNotNull {
             val a = it.selectFirst("a") ?: return@mapNotNull null
             val href = fixUrl(a.attr("href"))
+
+            if (href.contains("#") || href.contains("javascript"))
+                return@mapNotNull null
+
             val title = a.text().trim()
             val poster = it.parent()?.selectFirst("img")?.attr("src")
 
+            val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
+            val latestEp = Regex("(\\d+)$").find(episodeText ?: "")?.groupValues?.getOrNull(1)
+
+            val badge = if (!latestEp.isNullOrBlank())
+                "Ep $latestEp"
+            else
+                "HD Sub Indo"
+
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
+                this.addQuality(badge)
             }
         }.distinctBy { it.url }
     }
@@ -61,22 +94,42 @@ class DramaIdProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url).document
 
-        val title = doc.selectFirst("h1.single-title, h2.single-title")?.text()?.trim() ?: "No Title"
-        val poster = doc.selectFirst(".thumbnail_single img, .daftar-foto img")?.attr("src")
-        val plot = doc.select(".synopsis p").joinToString("\n") { it.text() }
+        val title = doc.selectFirst("h1.single-title, h2.single-title")
+            ?.text()?.trim() ?: "No Title"
 
-        val typeText = doc.select(".info li:contains(Tipe)").text()
-        val isMovie = typeText.contains("Movie", true)
-        val year = doc.select(".info li:contains(Tahun)").text().toIntOrNull()
-        val statusText = doc.select(".info li:contains(Status)").text()
-        val status = when {
-            statusText.contains("ongoing", true) -> ShowStatus.Ongoing
-            statusText.contains("completed", true) -> ShowStatus.Completed
-            else -> ShowStatus.Completed
+        val poster = doc.selectFirst(".thumbnail_single img, .daftar-foto img")
+            ?.attr("src")
+
+        val plot = doc.select(".synopsis p")
+            .joinToString("\n") { it.text() }
+            .trim()
+
+        val infoMap = doc.select(".info ul li").associate {
+            val key = it.selectFirst("strong")
+                ?.text()?.replace(":", "")?.trim() ?: ""
+
+            val value = it.select("a")
+                .joinToString(", ") { a -> a.text() }
+                .ifEmpty { it.ownText().trim() }
+
+            key to value
         }
-        val scoreText = doc.select(".info li:contains(Skor)").text().replace(",", ".").substringBefore("/").toDoubleOrNull()
-        val score = scoreText?.let { Score.from10(it) }
-        val tags = doc.select(".info li a").map { it.text() }
+
+        val type = infoMap["Tipe"]?.lowercase()
+        val isMovie = type?.contains("movie") == true
+
+        val year = infoMap["Tahun"]?.toIntOrNull()
+
+        val status = if (infoMap["Status"]?.contains("ongoing", true) == true)
+            ShowStatus.Ongoing else ShowStatus.Completed
+
+        val score = infoMap["Skor"]
+            ?.replace(",", ".")
+            ?.substringBefore("/")
+            ?.toDoubleOrNull()
+            ?.let { Score.from10(it) }
+
+        val tags = doc.select(".info ul li a").map { it.text() }
 
         if (isMovie) {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -99,8 +152,8 @@ class DramaIdProvider : MainAPI() {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
-            this.showStatus = status
             this.score = score
+            this.showStatus = status
             this.tags = tags
         }
     }
@@ -114,33 +167,39 @@ class DramaIdProvider : MainAPI() {
 
         val doc = app.get(data).document
         var found = false
-        val addedResolutions = mutableSetOf<String>()
+        val added = mutableSetOf<String>()
 
-        val elements = doc.select(".resolusi-list li")
-
-        for (el in elements) {
+        doc.select(".resolusi-list li").forEach { el ->
             val encoded = el.attr("data")
-            if (encoded.isBlank()) continue
+            if (encoded.isBlank()) return@forEach
 
             try {
                 val jsonStr = String(Base64.decode(encoded, Base64.DEFAULT))
                 val obj = JSONObject(jsonStr)
 
                 val resolution = obj.optString("resolution")
-                if (resolution in addedResolutions) continue // cegah duplikat
-                addedResolutions.add(resolution)
-
                 val links = obj.getJSONArray("links")
+
                 for (i in 0 until links.length()) {
                     var url = links.getJSONObject(i).getString("url")
                     url = url.replace("\\/", "/")
+
                     val id = Uri.parse(url).getQueryParameter("id") ?: continue
-                    val apiRes = app.get("https://api.dlgan.space/api.php?id=$id").text
-                    val direct = JSONObject(apiRes).optString("direct_url")
-                    if (direct.isNotEmpty()) {
+
+                    val api = app.get("https://api.dlgan.space/api.php?id=$id").text
+                    val direct = JSONObject(api).optString("direct_url")
+
+                    if (direct.isNotEmpty() && direct !in added) {
+                        added.add(direct)
                         found = true
+
                         callback.invoke(
-                            newExtractorLink("DramaID", "DramaID $resolution", direct, ExtractorLinkType.VIDEO) {
+                            newExtractorLink(
+                                "DramaID",
+                                "DramaID $resolution",
+                                direct,
+                                ExtractorLinkType.VIDEO
+                            ) {
                                 this.quality = getQualityFromName(resolution)
                             }
                         )
