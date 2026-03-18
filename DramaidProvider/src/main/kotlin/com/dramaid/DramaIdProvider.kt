@@ -167,7 +167,8 @@ class DramaIdProvider : MainAPI() {
 
         val doc = app.get(data).document
         var found = false
-        val added = mutableSetOf<String>()
+
+        val list = mutableListOf<Pair<String, String>>()
 
         doc.select(".resolusi-list li").forEach { el ->
             val encoded = el.attr("data")
@@ -177,7 +178,12 @@ class DramaIdProvider : MainAPI() {
                 val jsonStr = String(Base64.decode(encoded, Base64.DEFAULT))
                 val obj = JSONObject(jsonStr)
 
-                val resolution = obj.optString("resolution")
+                val rawRes = obj.optString("resolution")
+                val resolution = rawRes
+                    .replace(Regex("(\\b\\d{3,4}p)(\\s+\\1)+"), "$1")
+                    .uppercase()
+                    .replace(" ", "")
+
                 val links = obj.getJSONArray("links")
 
                 for (i in 0 until links.length()) {
@@ -189,23 +195,31 @@ class DramaIdProvider : MainAPI() {
                     val api = app.get("https://api.dlgan.space/api.php?id=$id").text
                     val direct = JSONObject(api).optString("direct_url")
 
-                    if (direct.isNotEmpty() && direct !in added) {
-                        added.add(direct)
-                        found = true
-
-                        callback.invoke(
-                            newExtractorLink(
-                                "DramaID",
-                                "DramaID $resolution",
-                                direct,
-                                ExtractorLinkType.VIDEO
-                            ) {
-                                this.quality = getQualityFromName(resolution)
-                            }
-                        )
+                    if (direct.isNotEmpty()) {
+                        list.add(resolution to direct)
                     }
                 }
             } catch (_: Exception) {}
+        }
+
+        val sorted = list
+            .distinctBy { it.first }
+            .sortedBy {
+                Regex("(\\d{3,4})").find(it.first)?.value?.toIntOrNull() ?: 0
+            }
+
+        sorted.forEach { (res, link) ->
+            found = true
+            callback.invoke(
+                newExtractorLink(
+                    "DramaID",
+                    "DramaID $res",
+                    link,
+                    ExtractorLinkType.VIDEO
+                ) {
+                    this.quality = getQualityFromName(res)
+                }
+            )
         }
 
         return found
