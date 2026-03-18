@@ -34,23 +34,42 @@ class DramaIdProvider : MainAPI() {
         val doc = app.get(url).document
 
         val home = if (request.data == "/") {
-            doc.select("article").mapNotNull { el ->
-                val a = el.selectFirst("a") ?: return@mapNotNull null
-                val href = fixUrl(a.attr("href"))
 
-                if (
-                    href.contains("#") ||
-                    href.contains("javascript") ||
-                    href.contains("/episode/")
-                ) return@mapNotNull null
+            val latestSection = doc.select("h2.title_index")
+                .firstOrNull { it.text().contains("Drama Terbaru", true) }
+                ?.parent()
 
-                val title = el.selectFirst("h2, h3")?.text()?.trim() ?: return@mapNotNull null
-                val poster = el.selectFirst("img")?.attr("src")
+            latestSection
+                ?.select("div.post_index > div.style_post_1 > article")
+                ?.mapNotNull { el ->
 
-                newTvSeriesSearchResponse(title, href) {
-                    this.posterUrl = poster
+                    val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
+                    val href = fixUrl(a.attr("href"))
+                        .substringBefore("?")
+                        .trimEnd('/')
+
+                    val title = a.text()
+                        .replace("Subtitle Indonesia", "")
+                        .trim()
+
+                    val poster = el.selectFirst("img")?.attr("src")
+
+                    val duration = el.selectFirst("li:contains(Duration)")?.text()
+                        ?.substringAfter(":")
+                        ?.replace("hr.", "jam")
+                        ?.replace("min.", "menit")
+                        ?.replace("min", "menit")
+                        ?.trim()
+
+                    newTvSeriesSearchResponse(title, href) {
+                        this.posterUrl = poster
+                        this.plot = duration
+                    }
                 }
-            }.distinctBy { it.url }.take(20)
+                ?.distinctBy { it.url }
+                ?.take(20)
+                ?: emptyList()
+
         } else {
             doc.select("h3.title_post").mapNotNull {
                 val a = it.selectFirst("a") ?: return@mapNotNull null
