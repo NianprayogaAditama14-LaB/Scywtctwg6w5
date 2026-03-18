@@ -37,20 +37,13 @@ class DramaIdProvider : MainAPI() {
 
             val title = a.text().replace("Subtitle Indonesia", "").trim()
             val poster = el.selectFirst("img")?.attr("src")
-            val episodeText = el.select("ul li:contains(Episode)").text()
-            val latestEp = Regex("(\\d+)$").find(episodeText)?.groupValues?.getOrNull(1)
-            val badge = if (!latestEp.isNullOrBlank()) "HD Sub Ep $latestEp" else "HD Sub Indo"
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addQuality(badge)
             }
-        }.distinctBy { it.url }.take(20)
+        }.distinctBy { it.url }
 
-        return newHomePageResponse(
-            listOf(HomePageList(request.name, home)),
-            hasNext = doc.selectFirst("link[rel=next]") != null
-        )
+        return newHomePageResponse(listOf(HomePageList(request.name, home)))
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -58,17 +51,11 @@ class DramaIdProvider : MainAPI() {
         return doc.select("h3.title_post").mapNotNull {
             val a = it.selectFirst("a") ?: return@mapNotNull null
             val href = fixUrl(a.attr("href"))
-            if (href.contains("#") || href.contains("javascript")) return@mapNotNull null
-
             val title = a.text().trim()
-            val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
-            val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
-            val latestEp = Regex("(\\d+)$").find(episodeText ?: "")?.groupValues?.getOrNull(1)
-            val badge = if (!latestEp.isNullOrBlank()) "HD Sub Ep $latestEp" else "HD Sub Indo"
+            val poster = it.parent()?.selectFirst("img")?.attr("src")
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addQuality(badge)
             }
         }.distinctBy { it.url }
     }
@@ -78,52 +65,39 @@ class DramaIdProvider : MainAPI() {
 
         val title = doc.selectFirst("h1.single-title, h2.single-title")?.text()?.trim() ?: "No Title"
         val poster = doc.selectFirst(".thumbnail_single img, .daftar-foto img")?.attr("src")
-        val plotText = doc.select(".synopsis p").joinToString("\n") { it.text() }.trim()
+        val plot = doc.select(".synopsis p").joinToString("\n") { it.text() }
 
-        val infoMap = doc.select(".info ul li").associate {
-            val key = it.selectFirst("strong")?.text()?.replace(":", "")?.trim() ?: ""
-            val value = it.select("a").joinToString(", ") { a -> a.text() }
-                .ifEmpty { it.ownText().trim() }
-            key to value
-        }
-
-        val type = infoMap["Tipe"]?.lowercase()
-        val isMovie = type?.contains("movie") == true
-        val year = infoMap["Tahun"]?.toIntOrNull()
-        val status = if (infoMap["Status"]?.contains("ongoing", true) == true)
+        val typeText = doc.select(".info li:contains(Tipe)").text()
+        val isMovie = typeText.contains("Movie", true)
+        val year = doc.select(".info li:contains(Tahun)").text().toIntOrNull()
+        val status = if (doc.select(".info li:contains(Status)").text().contains("ongoing", true))
             ShowStatus.Ongoing else ShowStatus.Completed
-
-        val score = infoMap["Skor"]
-            ?.replace(",", ".")
-            ?.substringBefore("/")
-            ?.toDoubleOrNull()
-            ?.let { Score.from10(it) }
-
-        val tags = doc.select(".info ul li a").map { it.text() }
+        val score = doc.select(".info li:contains(Skor)").text().replace(",", ".").substringBefore("/").toDoubleOrNull()?.let { Score.from10(it) }
+        val tags = doc.select(".info li a").map { it.text() }
 
         if (isMovie) {
             return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
-                this.plot = plotText
+                this.plot = plot
                 this.year = year
                 this.score = score
                 this.tags = tags
             }
         }
 
-        val episodes = doc.select(".daftar-episode a").mapIndexed { index, el ->
+        val episodes = doc.select(".daftar-episode a").mapIndexed { i, el ->
             newEpisode(fixUrl(el.attr("href"))) {
-                this.name = "Episode ${index + 1}"
-                this.episode = index + 1
+                this.name = "Episode ${i + 1}"
+                this.episode = i + 1
             }
         }
 
         return newTvSeriesLoadResponse(title, url, TvType.AsianDrama, episodes) {
             this.posterUrl = poster
-            this.plot = plotText
+            this.plot = plot
             this.year = year
-            this.score = score
             this.showStatus = status
+            this.score = score
             this.tags = tags
         }
     }
@@ -153,30 +127,19 @@ class DramaIdProvider : MainAPI() {
 
                 for (i in 0 until links.length()) {
                     var url = links.getJSONObject(i).getString("url")
-
                     url = url.replace("\\/", "/")
-
                     val id = Uri.parse(url).getQueryParameter("id") ?: continue
-
                     val apiRes = app.get("https://api.dlgan.space/api.php?id=$id").text
                     val direct = JSONObject(apiRes).optString("direct_url")
-
                     if (direct.isNotEmpty()) {
                         found = true
-
                         callback.invoke(
-                            ExtractorLink(
-                                "DramaID",
-                                "DramaID $resolution",
-                                direct,
-                                "",
-                                getQualityFromName(resolution),
-                                false
-                            )
+                            newExtractorLink("DramaID", "DramaID $resolution", direct, ExtractorLinkType.VIDEO) {
+                                this.quality = getQualityFromName(resolution)
+                            }
                         )
                     }
                 }
-
             } catch (_: Exception) {}
         }
 
