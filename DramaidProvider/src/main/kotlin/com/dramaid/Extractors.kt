@@ -16,22 +16,14 @@ class BerkasDriveExtractor : ExtractorApi() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ) {
-
         val decodedHtml = try {
             String(Base64.decode(url, Base64.DEFAULT))
         } catch (e: Exception) {
             url
         }
 
-        val iframe = Regex("""src="([^"]+)"""")
-            .find(decodedHtml)
-            ?.groupValues?.getOrNull(1)
-            ?: return
-
-        val encodedId = Regex("""id=([^&]+)""")
-            .find(iframe)
-            ?.groupValues?.getOrNull(1)
-            ?: return
+        val iframe = Regex("""src="([^"]+)"""").find(decodedHtml)?.groupValues?.getOrNull(1) ?: return
+        val encodedId = Regex("""id=([^&]+)""").find(iframe)?.groupValues?.getOrNull(1) ?: return
 
         val dlganUrl = try {
             String(Base64.decode(encodedId, Base64.DEFAULT))
@@ -39,31 +31,17 @@ class BerkasDriveExtractor : ExtractorApi() {
             return
         }
 
-        val id = Regex("""id=([^&]+)""")
-            .find(dlganUrl)
-            ?.groupValues?.getOrNull(1)
-            ?: return
-
+        val id = Regex("""id=([^&]+)""").find(dlganUrl)?.groupValues?.getOrNull(1) ?: return
         val api = "https://api.dlgan.space/api.php?id=$id"
         val json = app.get(api).parsedSafe<JsonObject>() ?: return
-
         val video = json.get("direct_url")?.asString ?: return
 
-        val qualityText = Regex("""(\d{3,4}p)""")
-            .find(video)
-            ?.value
+        val qualityText = Regex("""(\d{3,4}p)""").find(video)?.value
 
         callback(
-            newExtractorLink(
-                name,
-                "$name ${qualityText ?: ""}",
-                video,
-                ExtractorLinkType.VIDEO
-            ) {
+            newExtractorLink(name, "$name ${qualityText ?: ""}", video, ExtractorLinkType.VIDEO) {
                 this.quality = getQualityFromName(qualityText)
-                this.headers = mapOf(
-                    "User-Agent" to USER_AGENT
-                )
+                this.headers = mapOf("User-Agent" to USER_AGENT)
             }
         )
     }
