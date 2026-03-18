@@ -126,10 +126,11 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
-        // ✅ FIX SCORE (GANTI RATING)
+        // ✅ FIX FINAL SCORE
         val score = infoMap["Skor"]
             ?.replace(",", ".")
             ?.toDoubleOrNull()
+            ?.let { Score(it) }
 
         val duration = infoMap["Durasi"]
             ?.replace("min.", "")
@@ -145,7 +146,7 @@ class DramaIdProvider : MainAPI() {
                 this.posterUrl = poster
                 this.plot = plotText
                 this.year = year
-                this.score = score // ✅ FIX
+                this.score = score
                 this.duration = duration
                 this.tags = tags
             }
@@ -164,7 +165,7 @@ class DramaIdProvider : MainAPI() {
             this.posterUrl = poster
             this.plot = plotText
             this.year = year
-            this.score = score // ✅ FIX
+            this.score = score
             this.showStatus = status
             this.duration = duration
             this.tags = tags
