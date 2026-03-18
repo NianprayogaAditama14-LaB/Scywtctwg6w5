@@ -132,12 +132,12 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
-        // ✅ FIX SCORE (DramaID → Skor)
+        // ✅ FINAL FIX SCORE (NO ERROR)
         val score = infoMap["Skor"]
             ?.replace(",", ".")
             ?.substringBefore("/")
             ?.toDoubleOrNull()
-            ?.let { Score((it * 10).toInt()) }
+            ?.let { Score.from10(it) }
 
         // ✅ FIX DURATION
         val duration = infoMap["Durasi"]
