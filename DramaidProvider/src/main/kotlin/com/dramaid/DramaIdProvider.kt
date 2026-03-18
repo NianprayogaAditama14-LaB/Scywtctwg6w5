@@ -52,12 +52,17 @@ class DramaIdProvider : MainAPI() {
 
             val poster = el.selectFirst("img")?.attr("src")
 
-            val latestEp = el.selectFirst(".eps, .episode, .latest")?.text()?.filter { it.isDigit() }
+            val episodeText = el.select("ul li:contains(Episode)").text()
+
+            val latestEp = Regex("(\\d+)$")
+                .find(episodeText)
+                ?.groupValues
+                ?.getOrNull(1)
 
             val badge = if (!latestEp.isNullOrBlank()) {
-                "HD • Sub Ep $latestEp"
+                "HD   Sub Ep $latestEp"
             } else {
-                "HD • Sub Indo"
+                "HD   Sub Indo"
             }
 
             newTvSeriesSearchResponse(title, href) {
@@ -91,12 +96,17 @@ class DramaIdProvider : MainAPI() {
             val title = a.text().trim()
             val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
-            val latestEp = it.parent()?.selectFirst(".eps, .episode, .latest")?.text()?.filter { c -> c.isDigit() }
+            val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
+
+            val latestEp = Regex("(\\d+)$")
+                .find(episodeText ?: "")
+                ?.groupValues
+                ?.getOrNull(1)
 
             val badge = if (!latestEp.isNullOrBlank()) {
-                "HD • Sub Ep $latestEp"
+                "HD   Sub Ep $latestEp"
             } else {
-                "HD • Sub Indo"
+                "HD   Sub Indo"
             }
 
             newTvSeriesSearchResponse(title, href) {
