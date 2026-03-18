@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 
 class YourUpload : ExtractorApi() {
     override val name = "YourUpload"
@@ -57,6 +58,8 @@ class KrakenFiles : ExtractorApi() {
     override val mainUrl = "https://krakenfiles.com"
     override val requiresReferer = true
 
+    private val userAgent = "Mozilla/5.0"
+
     override suspend fun getUrl(
         url: String,
         referer: String?,
@@ -67,7 +70,7 @@ class KrakenFiles : ExtractorApi() {
             val res = app.get(
                 url,
                 headers = mapOf(
-                    "User-Agent" to USER_AGENT,
+                    "User-Agent" to userAgent,
                     "Referer" to (referer ?: mainUrl)
                 )
             )
@@ -89,7 +92,7 @@ class KrakenFiles : ExtractorApi() {
                     this.referer = "https://krakenfiles.com/"
                     this.quality = quality
                     this.headers = mapOf(
-                        "User-Agent" to USER_AGENT,
+                        "User-Agent" to userAgent,
                         "Referer" to "https://krakenfiles.com/"
                     )
                 }
