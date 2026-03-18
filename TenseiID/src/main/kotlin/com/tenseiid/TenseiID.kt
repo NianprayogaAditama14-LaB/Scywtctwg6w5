@@ -100,6 +100,27 @@ class TenseiID : MainAPI() {
         val document = app.get(data).document
         val added = mutableSetOf<String>()
 
+        document.select("div.player-embed iframe").forEach {
+            val url = it.attr("src")
+            if (url.contains(".mp4") && added.add(url)) {
+                callback(
+                    newExtractorLink(
+                        source = "Kuro",
+                        name = "Kuro",
+                        url = url,
+                        type = ExtractorLinkType.Other
+                    ) {
+                        this.quality = getQualityFromUrl(url)
+                        this.isM3U8 = false
+                        this.headers = mapOf(
+                            "Referer" to mainUrl,
+                            "User-Agent" to USER_AGENT
+                        )
+                    }
+                )
+            }
+        }
+
         document.select(".mobius option").forEach {
             val base64 = it.attr("value")
             if (base64.isEmpty()) return@forEach
@@ -109,23 +130,16 @@ class TenseiID : MainAPI() {
             val url = doc.select("iframe").attr("src")
 
             if (url.contains(".mp4") && added.add(url)) {
-                val quality = when {
-                    url.contains("360") -> Qualities.P360.value
-                    url.contains("480") -> Qualities.P480.value
-                    url.contains("720") -> Qualities.P720.value
-                    else -> Qualities.Unknown.value
-                }
-
                 callback(
                     newExtractorLink(
-                        "Kuro",
-                        "Kuro",
-                        url,
-                        "",
-                        quality,
-                        false
-                    ).apply {
-                        headers = mapOf(
+                        source = "Kuro",
+                        name = "Kuro",
+                        url = url,
+                        type = ExtractorLinkType.Other
+                    ) {
+                        this.quality = getQualityFromUrl(url)
+                        this.isM3U8 = false
+                        this.headers = mapOf(
                             "Referer" to mainUrl,
                             "User-Agent" to USER_AGENT
                         )
@@ -136,30 +150,43 @@ class TenseiID : MainAPI() {
 
         document.select(".soraurlx").forEach {
             val url = it.select("a").attr("href")
+            val qualityText = it.selectFirst("strong")?.text().orEmpty()
 
             if (url.contains(".mp4") && added.add(url)) {
-                val qualityText = it.selectFirst("strong")?.text().orEmpty()
-
-                val quality = when {
-                    qualityText.contains("360") -> Qualities.P360.value
-                    qualityText.contains("480") -> Qualities.P480.value
-                    qualityText.contains("720") -> Qualities.P720.value
-                    else -> Qualities.Unknown.value
-                }
-
                 callback(
                     newExtractorLink(
-                        "Kuro",
-                        "Kuro",
-                        url,
-                        "",
-                        quality,
-                        false
-                    )
+                        source = "Kuro",
+                        name = "Kuro",
+                        url = url,
+                        type = ExtractorLinkType.Other
+                    ) {
+                        this.quality = getQualityFromText(qualityText)
+                        this.isM3U8 = false
+                    }
                 )
             }
         }
 
         return true
+    }
+
+    private fun getQualityFromUrl(url: String): Int {
+        return when {
+            url.contains("360") -> Qualities.P360.value
+            url.contains("480") -> Qualities.P480.value
+            url.contains("720") -> Qualities.P720.value
+            url.contains("1080") -> Qualities.P1080.value
+            else -> Qualities.Unknown.value
+        }
+    }
+
+    private fun getQualityFromText(text: String): Int {
+        return when {
+            text.contains("360") -> Qualities.P360.value
+            text.contains("480") -> Qualities.P480.value
+            text.contains("720") -> Qualities.P720.value
+            text.contains("1080") -> Qualities.P1080.value
+            else -> Qualities.Unknown.value
+        }
     }
 }
