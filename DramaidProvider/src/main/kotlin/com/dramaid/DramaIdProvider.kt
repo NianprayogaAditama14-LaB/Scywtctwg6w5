@@ -46,14 +46,24 @@ class DramaIdProvider : MainAPI() {
             val episodeText = el.select("ul li:contains(Episode)").text()
             val latestEp = Regex("(\\d+)$").find(episodeText)?.groupValues?.getOrNull(1)
 
-            val badge = if (!latestEp.isNullOrBlank())
-                "Ep $latestEp"
-            else
-                "HD Sub Indo"
+            val scoreText = el.select("ul li:contains(Score)").text()
+            val score = Regex("(\\d+(\\.\\d+)?)")
+                .find(scoreText)
+                ?.value
+                ?.toDoubleOrNull()
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addQuality(badge)
+
+                this.quality = SearchQuality.HD
+
+                if (!latestEp.isNullOrBlank()) {
+                    this.addQuality("Ep $latestEp")
+                }
+
+                score?.let {
+                    this.rating = it
+                }
             }
         }.distinctBy { it.url }
 
@@ -79,14 +89,23 @@ class DramaIdProvider : MainAPI() {
             val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
             val latestEp = Regex("(\\d+)$").find(episodeText ?: "")?.groupValues?.getOrNull(1)
 
-            val badge = if (!latestEp.isNullOrBlank())
-                "Ep $latestEp"
-            else
-                "HD Sub Indo"
+            val scoreText = it.parent()?.select("ul li:contains(Score)")?.text()
+            val score = Regex("(\\d+(\\.\\d+)?)")
+                .find(scoreText ?: "")
+                ?.value
+                ?.toDoubleOrNull()
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addQuality(badge)
+                this.quality = SearchQuality.HD
+
+                if (!latestEp.isNullOrBlank()) {
+                    this.addQuality("Ep $latestEp")
+                }
+
+                score?.let {
+                    this.rating = it
+                }
             }
         }.distinctBy { it.url }
     }
