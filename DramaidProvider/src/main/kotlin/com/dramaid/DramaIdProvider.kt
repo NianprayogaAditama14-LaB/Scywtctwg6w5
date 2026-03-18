@@ -43,24 +43,23 @@ class DramaIdProvider : MainAPI() {
             val title = a.text().replace("Subtitle Indonesia", "").trim()
             val poster = el.selectFirst("img")?.attr("src")
 
-            val episodeText = el.select("li:has(strong:contains(Episode))").text()
-            val latestEp = Regex("(\\d+)(?!.*\\d)").find(episodeText)?.value
+            val episodeText = el.select("ul li:contains(Episode)").text()
+            val latestEp = Regex("(\\d+)(?!.*\\d)")
+                .find(episodeText)
+                ?.value
+                ?.toIntOrNull()
 
-            val scoreText = el.select("li:has(strong:contains(Score))").text()
+            val scoreText = el.select("ul li:contains(Score)").text()
             val score = Regex("(\\d+(\\.\\d+)?)")
                 .find(scoreText)
                 ?.value
                 ?.toDoubleOrNull()
 
-            val finalTitle = buildString {
-                append(title)
-                if (!latestEp.isNullOrBlank()) append(" • Ep $latestEp")
-                append(" • HD")
-            }
-
-            newTvSeriesSearchResponse(finalTitle, href) {
+            newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.score = Score.from10(score)
+                this.quality = SearchQuality.HD
+                this.latestEpisode = latestEp
+                this.score = score?.let { Score.from10(it) }
             }
         }.distinctBy { it.url }
 
@@ -81,30 +80,25 @@ class DramaIdProvider : MainAPI() {
                 return@mapNotNull null
 
             val title = a.text().trim()
-            val parent = it.parent()
+            val poster = it.parent()?.selectFirst("img")?.attr("src")
 
-            val poster = parent?.selectFirst("img")?.attr("src")
-
-            val episodeText = parent?.select("li:has(strong:contains(Episode))")?.text()
+            val episodeText = it.parent()?.select("ul li:contains(Episode)")?.text()
             val latestEp = Regex("(\\d+)(?!.*\\d)")
                 .find(episodeText ?: "")
                 ?.value
+                ?.toIntOrNull()
 
-            val scoreText = parent?.select("li:has(strong:contains(Score))")?.text()
+            val scoreText = it.parent()?.select("ul li:contains(Score)")?.text()
             val score = Regex("(\\d+(\\.\\d+)?)")
                 .find(scoreText ?: "")
                 ?.value
                 ?.toDoubleOrNull()
 
-            val finalTitle = buildString {
-                append(title)
-                if (!latestEp.isNullOrBlank()) append(" • Ep $latestEp")
-                append(" • HD")
-            }
-
-            newTvSeriesSearchResponse(finalTitle, href) {
+            newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.score = Score.from10(score)
+                this.quality = SearchQuality.HD
+                this.latestEpisode = latestEp
+                this.score = score?.let { Score.from10(it) }
             }
         }.distinctBy { it.url }
     }
@@ -153,7 +147,7 @@ class DramaIdProvider : MainAPI() {
                 this.posterUrl = poster
                 this.plot = plot
                 this.year = year
-                this.score = Score.from10(score)
+                this.score = score?.let { Score.from10(it) }
                 this.tags = tags
             }
         }
@@ -169,7 +163,7 @@ class DramaIdProvider : MainAPI() {
             this.posterUrl = poster
             this.plot = plot
             this.year = year
-            this.score = Score.from10(score)
+            this.score = score?.let { Score.from10(it) }
             this.showStatus = status
             this.tags = tags
         }
@@ -227,7 +221,7 @@ class DramaIdProvider : MainAPI() {
         }
 
         qualityMap
-            .toSortedMap(compareByDescending { it })
+            .toSortedMap()
             .forEach { (_, pair) ->
                 val (res, link) = pair
 
