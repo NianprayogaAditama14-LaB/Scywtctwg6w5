@@ -60,9 +60,13 @@ class DramaIdProvider : MainAPI() {
                 ?.replace("min", "menit")
                 ?.trim()
 
-            newTvSeriesSearchResponse(title, href) {
+            val finalTitle = if (duration != null) {
+                "$title • $duration"
+            } else title
+
+            newTvSeriesSearchResponse(finalTitle, href) {
                 this.posterUrl = poster
-                this.addQuality(duration ?: "")
+                this.addQuality("HD")
             }
 
         }
@@ -93,6 +97,7 @@ class DramaIdProvider : MainAPI() {
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
+                this.addQuality("HD")
             }
         }.distinctBy { it.url }
     }
@@ -126,9 +131,9 @@ class DramaIdProvider : MainAPI() {
             else -> ShowStatus.Completed
         }
 
-        // ✅ FIX FINAL SCORE
         val score = infoMap["Skor"]
             ?.replace(",", ".")
+            ?.substringBefore("/")
             ?.toDoubleOrNull()
             ?.let { Score(it) }
 
