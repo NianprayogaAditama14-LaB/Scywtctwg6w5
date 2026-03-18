@@ -118,15 +118,18 @@ class TenseiID : MainAPI() {
 
                 callback(
                     newExtractorLink(
-                        name = "Kuro",
-                        url = url,
-                        quality = quality,
-                        isM3u8 = false,
+                        "Kuro",
+                        "Kuro",
+                        url,
+                        "",
+                        quality,
+                        false
+                    ).apply {
                         headers = mapOf(
                             "Referer" to mainUrl,
                             "User-Agent" to USER_AGENT
                         )
-                    )
+                    }
                 )
             }
         }
@@ -136,6 +139,7 @@ class TenseiID : MainAPI() {
 
             if (url.contains(".mp4") && added.add(url)) {
                 val qualityText = it.selectFirst("strong")?.text().orEmpty()
+
                 val quality = when {
                     qualityText.contains("360") -> Qualities.P360.value
                     qualityText.contains("480") -> Qualities.P480.value
@@ -145,10 +149,12 @@ class TenseiID : MainAPI() {
 
                 callback(
                     newExtractorLink(
-                        name = "Kuro",
-                        url = url,
-                        quality = quality,
-                        isM3u8 = false
+                        "Kuro",
+                        "Kuro",
+                        url,
+                        "",
+                        quality,
+                        false
                     )
                 )
             }
