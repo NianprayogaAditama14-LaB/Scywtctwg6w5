@@ -44,9 +44,7 @@ class DramaIdProvider : MainAPI() {
             val poster = el.selectFirst("img")?.attr("src")
 
             val episodeText = el.select("li:has(strong:contains(Episode))").text()
-            val latestEp = Regex("(\\d+)(?!.*\\d)")
-                .find(episodeText)
-                ?.value
+            val latestEp = Regex("(\\d+)(?!.*\\d)").find(episodeText)?.value
 
             val scoreText = el.select("li:has(strong:contains(Score))").text()
             val score = Regex("(\\d+(\\.\\d+)?)")
@@ -54,14 +52,14 @@ class DramaIdProvider : MainAPI() {
                 ?.value
                 ?.toDoubleOrNull()
 
-            newTvSeriesSearchResponse(title, href) {
+            val finalTitle = buildString {
+                append(title)
+                if (!latestEp.isNullOrBlank()) append(" • Ep $latestEp")
+                append(" • HD")
+            }
+
+            newTvSeriesSearchResponse(finalTitle, href) {
                 this.posterUrl = poster
-                this.quality = SearchQuality.HD
-
-                if (!latestEp.isNullOrBlank()) {
-                    this.addQuality("Ep $latestEp")
-                }
-
                 this.score = Score.from10(score)
             }
         }.distinctBy { it.url }
@@ -98,14 +96,14 @@ class DramaIdProvider : MainAPI() {
                 ?.value
                 ?.toDoubleOrNull()
 
-            newTvSeriesSearchResponse(title, href) {
+            val finalTitle = buildString {
+                append(title)
+                if (!latestEp.isNullOrBlank()) append(" • Ep $latestEp")
+                append(" • HD")
+            }
+
+            newTvSeriesSearchResponse(finalTitle, href) {
                 this.posterUrl = poster
-                this.quality = SearchQuality.HD
-
-                if (!latestEp.isNullOrBlank()) {
-                    this.addQuality("Ep $latestEp")
-                }
-
                 this.score = Score.from10(score)
             }
         }.distinctBy { it.url }
