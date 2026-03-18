@@ -52,23 +52,17 @@ class DramaIdProvider : MainAPI() {
 
             val poster = el.selectFirst("img")?.attr("src")
 
-            val episodeText = el.select("div.info ul li")
-                .firstOrNull { it.text().contains("Episode") }
-                ?.text()
+            val latestEp = el.selectFirst(".eps, .episode, .latest")?.text()?.filter { it.isDigit() }
 
-            val latestEp = episodeText
-                ?.substringAfter(":")
-                ?.substringAfterLast("-")
-                ?.trim()
+            val badge = if (!latestEp.isNullOrBlank()) {
+                "HD • Sub Ep $latestEp"
+            } else {
+                "HD • Sub Indo"
+            }
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addQuality("HD")
-                if (!latestEp.isNullOrBlank()) {
-                    this.addQuality("Sub • Ep $latestEp")
-                } else {
-                    this.addQuality("Sub Indo")
-                }
+                this.addQuality(badge)
             }
 
         }
@@ -85,8 +79,8 @@ class DramaIdProvider : MainAPI() {
         val url = "$mainUrl/?s=${query.replace(" ", "+")}"
         val doc = app.get(url).document
 
-        return doc.select("div.post_index article").mapNotNull { el ->
-            val a = el.selectFirst("h3.title_post a") ?: return@mapNotNull null
+        return doc.select("h3.title_post").mapNotNull {
+            val a = it.selectFirst("a") ?: return@mapNotNull null
             val href = fixUrl(a.attr("href"))
 
             if (
@@ -95,25 +89,19 @@ class DramaIdProvider : MainAPI() {
             ) return@mapNotNull null
 
             val title = a.text().trim()
-            val poster = el.selectFirst(".thumbnail img")?.attr("src")
+            val poster = it.parent()?.selectFirst(".thumbnail img")?.attr("src")
 
-            val episodeText = el.select("div.info ul li")
-                .firstOrNull { it.text().contains("Episode") }
-                ?.text()
+            val latestEp = it.parent()?.selectFirst(".eps, .episode, .latest")?.text()?.filter { c -> c.isDigit() }
 
-            val latestEp = episodeText
-                ?.substringAfter(":")
-                ?.substringAfterLast("-")
-                ?.trim()
+            val badge = if (!latestEp.isNullOrBlank()) {
+                "HD • Sub Ep $latestEp"
+            } else {
+                "HD • Sub Indo"
+            }
 
             newTvSeriesSearchResponse(title, href) {
                 this.posterUrl = poster
-                this.addQuality("HD")
-                if (!latestEp.isNullOrBlank()) {
-                    this.addQuality("Sub • Ep $latestEp")
-                } else {
-                    this.addQuality("Sub Indo")
-                }
+                this.addQuality(badge)
             }
         }.distinctBy { it.url }
     }
