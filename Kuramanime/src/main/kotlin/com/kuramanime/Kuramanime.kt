@@ -32,9 +32,8 @@ class Kuramanime : MainAPI() {
         return when {
             lower.contains("rpm") -> "RPMShare Kurama-VIP"
             lower.contains("dood") -> "DoodStream"
-            lower.contains("kurama") && quality != null -> "Kuramanime $quality"
-            lower.contains("kurama") -> "Kuramanime Direct"
-            else -> name.substringBefore("(").trim()
+            lower.contains("direct") -> "Kuramanime Direct"
+            else -> "Kuramanime"
         }
     }
 
@@ -182,7 +181,7 @@ class Kuramanime : MainAPI() {
                 ExtractorLinkType.VIDEO
             }
 
-            val finalName = formatServerName(name, quality)
+            val finalName = formatServerName(name, null)
 
             callback.invoke(
                 newExtractorLink(
@@ -327,6 +326,7 @@ class Kuramanime : MainAPI() {
                 .mapNotNull { option ->
                     val value = option.attr("value").trim().ifBlank { return@mapNotNull null }
                     val label = option.text()
+                        .substringBefore("(")
                         .replace("\\s+".toRegex(), " ")
                         .trim()
                         .ifBlank { value }
