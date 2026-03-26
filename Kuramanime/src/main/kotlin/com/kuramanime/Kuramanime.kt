@@ -31,14 +31,10 @@ class Kuramanime : MainAPI() {
         val lower = name.lowercase()
         return when {
             lower.contains("rpm") -> "RPMShare Kurama-VIP"
-            lower.contains("direct") -> "Kuramanime Direct"
-            else -> {
-                if (quality != null) {
-                    "Kuramanime $quality"
-                } else {
-                    "Kuramanime"
-                }
-            }
+            lower.contains("dood") -> "DoodStream"
+            lower.contains("kurama") && quality != null -> "Kuramanime $quality"
+            lower.contains("kurama") -> "Kuramanime Direct"
+            else -> name.substringBefore("(").trim()
         }
     }
 
