@@ -66,40 +66,40 @@ class ImaxStreamsExtractor : ExtractorApi() {
         val html = app.get(url, headers = headers).text
 
         val unpacked = try {
-            val packed = Regex(
-                """eval\(function\(p,a,c,k,e,d.*?\)\)""",
-                RegexOption.DOT_MATCHES_ALL
-            ).find(html)?.value
-
+            val packed = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
+                .find(html)?.value
             packed?.let { JsUnpacker(it).unpack() } ?: html
         } catch (e: Exception) {
             html
         }
 
-        val hls2 = Regex("""["']hls2["']\s*:\s*["']([^"']+)""")
-            .find(unpacked)?.groupValues?.get(1)
+        val linkRegex = Regex("""["'](hls\d)["']\s*:\s*["']([^"']+)""")
 
-        val hls3 = Regex("""["']hls3["']\s*:\s*["']([^"']+)""")
-            .find(unpacked)?.groupValues?.get(1)
+        val matches = linkRegex.findAll(unpacked).toList()
 
-        val hls4 = Regex("""["']hls4["']\s*:\s*["']([^"']+)""")
-            .find(unpacked)?.groupValues?.get(1)
+        if (matches.isEmpty()) return
 
-        val links = listOfNotNull(hls4, hls3, hls2)
+        matches.forEach {
 
-        links.forEach { link ->
-            if (link.endsWith(".txt")) return@forEach
+            val quality = it.groupValues[1]
+            val link = it.groupValues[2]
 
             val fixed = if (link.startsWith("/")) {
                 "$mainUrl$link"
             } else link
 
+            val type = if (fixed.endsWith(".m3u8")) {
+                ExtractorLinkType.M3U8
+            } else {
+                ExtractorLinkType.M3U8
+            }
+
             callback.invoke(
                 newExtractorLink(
                     source = name,
-                    name = name,
+                    name = quality,
                     url = fixed,
-                    type = ExtractorLinkType.M3U8
+                    type = type
                 ).apply {
                     this.headers = headers
                 }
