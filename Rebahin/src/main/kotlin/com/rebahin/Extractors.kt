@@ -73,33 +73,20 @@ class ImaxStreamsExtractor : ExtractorApi() {
             html
         }
 
-        val linkRegex = Regex("""["'](hls\d)["']\s*:\s*["']([^"']+)""")
+        val m3u8Regex = Regex("""https?:\/\/[^"' ]+\.m3u8[^"' ]*""")
 
-        val matches = linkRegex.findAll(unpacked).toList()
+        val links = m3u8Regex.findAll(unpacked).map { it.value }.toSet()
 
-        if (matches.isEmpty()) return
+        if (links.isEmpty()) return
 
-        matches.forEach {
-
-            val quality = it.groupValues[1]
-            val link = it.groupValues[2]
-
-            val fixed = if (link.startsWith("/")) {
-                "$mainUrl$link"
-            } else link
-
-            val type = if (fixed.endsWith(".m3u8")) {
-                ExtractorLinkType.M3U8
-            } else {
-                ExtractorLinkType.M3U8
-            }
+        links.forEach { link ->
 
             callback.invoke(
                 newExtractorLink(
                     source = name,
-                    name = quality,
-                    url = fixed,
-                    type = type
+                    name = "Imax",
+                    url = link,
+                    type = ExtractorLinkType.M3U8
                 ).apply {
                     this.headers = headers
                 }
