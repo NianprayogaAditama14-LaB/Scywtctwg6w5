@@ -2,7 +2,6 @@ package com.rebahin
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import org.json.JSONArray
 import org.json.JSONObject
 
 class EmbedPyroxExtractor : ExtractorApi() {
@@ -27,16 +26,13 @@ class EmbedPyroxExtractor : ExtractorApi() {
                 "X-Requested-With" to "XMLHttpRequest",
                 "Referer" to url
             ),
-            data = mapOf(
-                "hash" to id
-            )
+            data = mapOf("hash" to id)
         ).text
 
         val json = JSONObject(response)
         val securedLink = json.optString("securedLink")
 
         if (securedLink.isNotEmpty()) {
-
             callback.invoke(
                 newExtractorLink(
                     source = name,
@@ -61,7 +57,13 @@ class ImaxStreamsExtractor : ExtractorApi() {
         callback: (ExtractorLink) -> Unit
     ) {
 
-        val html = app.get(url, referer = referer ?: mainUrl).text
+        val headers = mapOf(
+            "Referer" to "$mainUrl/",
+            "Origin" to mainUrl,
+            "User-Agent" to USER_AGENT
+        )
+
+        val html = app.get(url, headers = headers).text
 
         val unpacked = try {
             val packed = Regex(
@@ -70,55 +72,23 @@ class ImaxStreamsExtractor : ExtractorApi() {
             ).find(html)?.value
 
             packed?.let { JsUnpacker(it).unpack() } ?: html
-
         } catch (e: Exception) {
             html
         }
 
-        val sourcesJson = Regex("""sources\s*:\s*(\[[^\]]+\])""")
+        val hls2 = Regex("""["']hls2["']\s*:\s*["']([^"']+)""")
             .find(unpacked)?.groupValues?.get(1)
 
-        if (sourcesJson != null) {
+        val hls3 = Regex("""["']hls3["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
-            val arr = JSONArray(sourcesJson)
+        val hls4 = Regex("""["']hls4["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
-            for (i in 0 until arr.length()) {
+        val links = listOfNotNull(hls4, hls3, hls2)
 
-                val obj = arr.getJSONObject(i)
-                val link = obj.optString("file")
-                val label = obj.optString("label")
-
-                if (link.isNotEmpty()) {
-
-                    val fixed = if (link.startsWith("/")) {
-                        "$mainUrl$link"
-                    } else link
-
-                    callback.invoke(
-                        newExtractorLink(
-                            source = name,
-                            name = label.ifEmpty { name },
-                            url = fixed,
-                            type = ExtractorLinkType.M3U8
-                        ).apply {
-                            headers = mapOf(
-                                "Referer" to url,
-                                "Origin" to mainUrl,
-                                "User-Agent" to USER_AGENT
-                            )
-                        }
-                    )
-                }
-            }
-
-            return
-        }
-
-        val regex = Regex("""["']hls\d["']\s*:\s*["']([^"']+)""")
-
-        regex.findAll(unpacked).forEach {
-
-            val link = it.groupValues[1]
+        links.forEach { link ->
+            if (link.endsWith(".txt")) return@forEach
 
             val fixed = if (link.startsWith("/")) {
                 "$mainUrl$link"
@@ -131,11 +101,7 @@ class ImaxStreamsExtractor : ExtractorApi() {
                     url = fixed,
                     type = ExtractorLinkType.M3U8
                 ).apply {
-                    headers = mapOf(
-                        "Referer" to url,
-                        "Origin" to mainUrl,
-                        "User-Agent" to USER_AGENT
-                    )
+                    this.headers = headers
                 }
             )
         }
@@ -163,22 +129,22 @@ class ImaxDirectExtractor : ExtractorApi() {
 
         val html = app.get(url, headers = headers).text
 
-        val playlist = Regex("""https://[^"' ]+\.txt""")
-            .find(html)
-            ?.value
+        Regex("""https://[^"' ]+\.m3u8[^"' ]*""")
+            .findAll(html)
+            .map { it.value }
+            .distinct()
+            .forEach { link ->
 
-        if (playlist != null) {
-
-            callback.invoke(
-                newExtractorLink(
-                    source = name,
-                    name = name,
-                    url = playlist,
-                    type = ExtractorLinkType.M3U8
-                ).apply {
-                    this.headers = headers
-                }
-            )
-        }
+                callback.invoke(
+                    newExtractorLink(
+                        source = name,
+                        name = name,
+                        url = link,
+                        type = ExtractorLinkType.M3U8
+                    ).apply {
+                        this.headers = headers
+                    }
+                )
+            }
     }
 }
