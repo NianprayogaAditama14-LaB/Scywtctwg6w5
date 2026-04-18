@@ -66,26 +66,35 @@ class ImaxStreamsExtractor : ExtractorApi() {
         val html = app.get(url, headers = headers).text
 
         val unpacked = try {
-            val packed = Regex("""eval\(function\(p,a,c,k,e,d.*?\)\)""", RegexOption.DOT_MATCHES_ALL)
-                .find(html)?.value
+            val packed = Regex(
+                """eval\(function\(p,a,c,k,e,d.*?\)\)""",
+                RegexOption.DOT_MATCHES_ALL
+            ).find(html)?.value
+
             packed?.let { JsUnpacker(it).unpack() } ?: html
         } catch (e: Exception) {
             html
         }
 
-        val m3u8Regex = Regex("""https?:\/\/[^"' ]+\.m3u8[^"' ]*""")
+        val hls2 = Regex("""["']hls2["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
-        val links = m3u8Regex.findAll(unpacked).map { it.value }.toSet()
+        val hls3 = Regex("""["']hls3["']\s*:\s*["']([^"']+)""")
+            .find(unpacked)?.groupValues?.get(1)
 
-        if (links.isEmpty()) return
+        val finalLink = when {
+            !hls2.isNullOrEmpty() -> hls2
+            !hls3.isNullOrEmpty() -> hls3
+            else -> null
+        }
 
-        links.forEach { link ->
+        if (!finalLink.isNullOrEmpty()) {
 
             callback.invoke(
                 newExtractorLink(
                     source = name,
-                    name = "Imax",
-                    url = link,
+                    name = "Imax HLS",
+                    url = finalLink,
                     type = ExtractorLinkType.M3U8
                 ).apply {
                     this.headers = headers
